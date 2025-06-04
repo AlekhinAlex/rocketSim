@@ -32,15 +32,31 @@ namespace sim::core
         return destination_;
     }
 
-    bool Simulator::isArrived(double tolerance) const
+    void Simulator::updateMinDistance(const double newMinDist)
+    {
+        minDistance_ = newMinDist;
+    }
+
+    bool Simulator::isArrived(double tolerance)
     {
         Vector3 rocketPos = rocket().position();
         double distance = (rocketPos - destination_).length();
 
-        Logger::debug("isArrived check: distance = " + std::to_string(distance) +
-                      ", tolerance = " + std::to_string(tolerance));
+        if (distance < minDistance_)
+        {
+            minDistance_ = distance;
+        }
 
-        return distance <= tolerance;
+        if (distance < 2.0 * tolerance)
+        {
+            wasClose_ = true;
+        }
+
+        Logger::debug("isArrived check: distance = " + std::to_string(distance) +
+                      ", tolerance = " + std::to_string(tolerance) +
+                      ", minDistance = " + std::to_string(minDistance_));
+
+        return wasClose_ && (distance > minDistance_) && (minDistance_ <= tolerance);
     }
 
     double Simulator::time() const
@@ -137,26 +153,26 @@ namespace sim::core
 
     void Simulator::run(double dt)
     {
-        double totalTime = 3600.0; // Максимум 1 час
-        while (time_ < totalTime && !rocket_->isOutOfFuel() && !(isArrived()))
+        double totalTime = 3600.0;
+        while (time_ < totalTime && !rocket_->isOutOfFuel() && !isArrived())
         {
             step(dt);
         }
 
-        if (isArrived())
+        if (minDistance_ <= 1500.0) //* 1500 == default tolerance
         {
-
-            double distance = rocket().position().length() - destination_.length();
-
-            Logger::info("Simulation stopped: Target reached and stopped at time: " + std::to_string(time_) + " at distance: " + std::to_string(distance));
+            Logger::info("Simulation stopped: Best approach at time: " + std::to_string(time_) +
+                         ", min distance: " + std::to_string(minDistance_) + " m");
         }
         else if (rocket_->isOutOfFuel())
         {
-            Logger::warning("Simulation stopped: Rocket out of fuel");
+            Logger::warning("Simulation stopped: Rocket out of fuel at distance: " +
+                            std::to_string(minDistance_) + " m");
         }
         else
         {
-            Logger::info("Simulation stopped: Maximum time reached");
+            Logger::info("Simulation stopped: Maximum time reached, closest approach: " +
+                         std::to_string(minDistance_) + " m");
         }
     }
 

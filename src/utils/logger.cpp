@@ -22,7 +22,6 @@ namespace sim::utils
 
         std::string levelText;
 
-        // Определяем цвет и текст для уровня
         switch (level)
         {
         case LogLevel::None:
@@ -43,7 +42,6 @@ namespace sim::utils
             throw std::invalid_argument("Invalid log level");
         }
 
-        // Вывод: скобки — стандартные, тема — цветная, потом снова сброс
         std::cout << "[";
         switch (level)
         {

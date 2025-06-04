@@ -18,6 +18,8 @@ namespace sim::core
         std::shared_ptr<Autopilot> autopilot_;
 
         Vector3 destination_;
+        double minDistance_ = std::numeric_limits<double>::max();
+        bool wasClose_ = false;
         double time_ = 0.0;
 
     public:
@@ -33,8 +35,10 @@ namespace sim::core
         void step(double dt);
 
         void setDestination(const Vector3 &destination);
+        void updateMinDistance(const double newMinDist);
+
         const Vector3 &destination() const;
-        bool isArrived(double tolerance = 1500.0) const;
+        bool isArrived(double tolerance = 1500.0);
 
         double time() const;
         const Rocket &rocket() const;

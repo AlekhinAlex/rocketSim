@@ -17,20 +17,16 @@ int main()
     auto env = std::make_shared<Environment>();
     Vector3 destination(10000, 30000.0 + config::EARTH_RADIUS, 5000);
 
-    // Создаем оптимизатор и запускаем подбор параметров
     Optimizer optimizer(env, destination);
-    optimizer.optimize(50); // 100 итераций оптимизации
+    optimizer.optimize(100);
 
-    // Получаем лучшие параметры
     auto bestRocket = optimizer.getBestRocket();
     auto bestAutopilot = optimizer.getBestAutopilot();
 
     Logger::setLevel(LogLevel::Debug);
-    // Запускаем симуляцию с лучшими параметрами
     Simulator sim(bestRocket, env, destination, bestAutopilot);
     sim.run();
 
-    // Проверка конечного состояния
     Vector3 finalPos = bestRocket->position();
     double finalVel = bestRocket->velocity().length();
     double fuelLeft = bestRocket->totalMass() - bestRocket->dryMass();
