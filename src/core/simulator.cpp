@@ -52,9 +52,9 @@ namespace sim::core
             wasClose_ = true;
         }
 
-        Logger::debug("isArrived check: distance = " + std::to_string(distance) +
-                      ", tolerance = " + std::to_string(tolerance) +
-                      ", minDistance = " + std::to_string(minDistance_));
+        // Logger::debug("isArrived check: distance = " + std::to_string(distance) +
+        //               ", tolerance = " + std::to_string(tolerance) +
+        //               ", minDistance = " + std::to_string(minDistance_));
 
         return wasClose_ && (distance > minDistance_) && (minDistance_ <= tolerance);
     }
@@ -114,32 +114,32 @@ namespace sim::core
         time_ += dt;
 
         // Logging
-        std::string phaseStr;
-        auto gravityAutopilot = std::dynamic_pointer_cast<GravityTurnAutopilot>(autopilot_);
-        if (gravityAutopilot)
-        {
-            switch (gravityAutopilot->currentPhase())
-            {
-            case GravityTurnAutopilot::Phase::VerticalAscent:
-                phaseStr = "VerticalAscent";
-                break;
-            case GravityTurnAutopilot::Phase::GravityTurn:
-                phaseStr = "GravityTurn";
-                break;
-            case GravityTurnAutopilot::Phase::TargetApproach:
-                phaseStr = "TargetApproach";
-                break;
-            }
-        }
+        // std::string phaseStr;
+        // auto gravityAutopilot = std::dynamic_pointer_cast<GravityTurnAutopilot>(autopilot_);
+        // if (gravityAutopilot)
+        // {
+        //     switch (gravityAutopilot->currentPhase())
+        //     {
+        //     case GravityTurnAutopilot::Phase::VerticalAscent:
+        //         phaseStr = "VerticalAscent";
+        //         break;
+        //     case GravityTurnAutopilot::Phase::GravityTurn:
+        //         phaseStr = "GravityTurn";
+        //         break;
+        //     case GravityTurnAutopilot::Phase::TargetApproach:
+        //         phaseStr = "TargetApproach";
+        //         break;
+        //     }
+        // }
 
-        Logger::info("Time: " + std::to_string(time_) +
-                     ", Phase: " + phaseStr +
-                     ", Position: (" + std::to_string(rocket_->position().x()) +
-                     ", " + std::to_string(rocket_->position().y() - config::EARTH_RADIUS) +
-                     ", " + std::to_string(rocket_->position().z()) +
-                     "), Velocity: " + std::to_string(rocket_->velocity().length()) +
-                     " m/s, Fuel: " + std::to_string(rocket_->totalMass() - rocket_->dryMass()) +
-                     " kg");
+        // Logger::info("Time: " + std::to_string(time_) +
+        //              ", Phase: " + phaseStr +
+        //              ", Position: (" + std::to_string(rocket_->position().x()) +
+        //              ", " + std::to_string(rocket_->position().y() - config::EARTH_RADIUS) +
+        //              ", " + std::to_string(rocket_->position().z()) +
+        //              "), Velocity: " + std::to_string(rocket_->velocity().length()) +
+        //              " m/s, Fuel: " + std::to_string(rocket_->totalMass() - rocket_->dryMass()) +
+        //              " kg");
 
         // Logger::info("Time: " + std::to_string(time_) +
         //              ", Phase: " + phaseStr +

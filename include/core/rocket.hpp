@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include "vector3.hpp"
 
 namespace sim::core
@@ -35,7 +36,6 @@ namespace sim::core
         double totalMass() const;
         double dryMass() const;
         double fuelMass() const;
-        double specificImpulse() const;
 
         double specificImpulse() const;
         double burnRate() const;

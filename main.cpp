@@ -15,7 +15,7 @@ int main()
 {
     Logger::setLevel(LogLevel::None);
     auto env = std::make_shared<Environment>();
-    Vector3 destination(10000, 30000.0 + config::EARTH_RADIUS, 5000);
+    Vector3 destination(40000, 100000.0 + config::EARTH_RADIUS, 90000);
 
     Optimizer optimizer(env, destination);
     optimizer.optimize(100);

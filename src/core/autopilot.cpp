@@ -41,12 +41,12 @@ namespace sim::core
         }
         //!==================
 
-        Logger::info("Autopilot: Current altitude: " + std::to_string(altitude) + " m");
+        //*Logger::info("Autopilot: Current altitude: " + std::to_string(altitude) + " m");
         Vector3 velocity = rocket.velocity();
         Vector3 position = rocket.position();
         Vector3 toTarget = (destination_ - position).normalized();
         double distanceToTarget = (destination_ - position).length();
-        Logger::info("Autopilot: Distance to target: " + std::to_string(distanceToTarget) + " m\n");
+        //*Logger::info("Autopilot: Distance to target: " + std::to_string(distanceToTarget) + " m\n");
 
         if (phase_ == Phase::VerticalAscent)
         {
@@ -71,7 +71,7 @@ namespace sim::core
             double maxAngleChange = maxAngularVelocity_ * dt;
             double currentAngle = Vector3::angle(currentDirection, desiredDirection);
 
-            Logger::debug("Current Angle: " + std::to_string(currentAngle));
+            //*Logger::debug("Current Angle: " + std::to_string(currentAngle));
 
             double angleChange = std::min(currentAngle, maxAngleChange);
 
@@ -116,7 +116,7 @@ namespace sim::core
             double currentAngle = Vector3::angle(rocket.thrust().normalized(), toTarget);
             double angleChange = std::min(currentAngle, maxAngleChange);
 
-            Logger::debug("Current Angle: " + std::to_string(currentAngle));
+            //*Logger::debug("Current Angle: " + std::to_string(currentAngle));
 
             if (currentAngle > 0.0)
             {
@@ -167,7 +167,9 @@ namespace sim::core
         maxDeceleration -= (rocket.thrust().dot(gravityDir) * environment_->getGravity(rocket.position().length() - sim::utils::config::EARTH_RADIUS));
 
         if (maxDeceleration <= 0)
+        {
             return rocket.velocity() * 1e6;
+        }
         return rocket.velocity() * (currentSpeed / maxDeceleration);
     }
 
@@ -176,8 +178,8 @@ namespace sim::core
         Vector3 toTarget = destination_ - rocket.position();
         Vector3 currentDir = rocket.thrust().normalized();
 
-        Logger::debug("Current Direction (" + std::to_string(currentDir.x()) + " " + std::to_string(currentDir.y()) + " " + std::to_string(currentDir.z()) + ") N");
-        Logger::debug("Angle : " + std::to_string(Vector3::angle(toTarget, currentDir)));
+        // Logger::debug("Current Direction (" + std::to_string(currentDir.x()) + " " + std::to_string(currentDir.y()) + " " + std::to_string(currentDir.z()) + ") N");
+        // Logger::debug("Angle : " + std::to_string(Vector3::angle(toTarget, currentDir)));
 
         return Vector3::angle(toTarget, currentDir) < 10.0;
     }

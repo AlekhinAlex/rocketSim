@@ -84,11 +84,6 @@ namespace sim::core
         return fuelMass_;
     }
 
-    double Rocket::specificImpulse() const
-    {
-        return specificImpulse_;
-    }
-
     double Rocket::getCrossSectionArea() const
     {
         return crossSectionArea_;
