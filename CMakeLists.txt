@@ -37,15 +37,15 @@ if(BUILD_WASM)
     add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
     
     # Create the destination directory if it doesn't exist
-    file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/public/wasm)
+    file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/docs/wasm)
     
-    # Add post-build command to copy the output files to public/wasm
+    # Add post-build command to copy the output files to docs/wasm
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
             ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.js
             ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.wasm
-            ${CMAKE_SOURCE_DIR}/public/wasm/
-        COMMENT "Copying WebAssembly files to public/wasm directory"
+            ${CMAKE_SOURCE_DIR}/docs/wasm/
+        COMMENT "Copying WebAssembly files to docs/wasm directory"
     )
 else()
     add_executable(${PROJECT_NAME} main.cpp ${SOURCES} ${HEADERS})
