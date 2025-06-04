@@ -182,4 +182,24 @@ namespace sim::core
         return Vector3::angle(toTarget, currentDir) < 10.0;
     }
 
+    double GravityTurnAutopilot::turnStartAltitude() const
+    {
+        return turnStartAltitude_;
+    }
+
+    double GravityTurnAutopilot::turnRate() const
+    {
+        return turnRate_;
+    }
+
+    double GravityTurnAutopilot::targetAltitude() const
+    {
+        return targetAltitude_;
+    }
+
+    double GravityTurnAutopilot::maxAngularVelocity() const
+    {
+        return maxAngularVelocity_;
+    }
+
 }

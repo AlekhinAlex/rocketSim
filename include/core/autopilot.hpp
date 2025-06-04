@@ -53,6 +53,11 @@ namespace sim::core
         Vector3 calculateOptimalTurnDirection(const Rocket &rocket, const Vector3 &totalForce) const;
         Vector3 calculateStopDistance(const Rocket &rocket, const Vector3 &totalForce) const;
 
+        double turnStartAltitude() const;
+        double turnRate() const;
+        double targetAltitude() const;
+        double maxAngularVelocity() const;
+
         bool isFacingTarget(const Rocket &rocket) const;
         Phase currentPhase() const { return phase_; }
     };

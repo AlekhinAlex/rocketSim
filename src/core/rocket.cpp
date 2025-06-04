@@ -79,6 +79,16 @@ namespace sim::core
         return dryMass_;
     }
 
+    double Rocket::fuelMass() const
+    {
+        return fuelMass_;
+    }
+
+    double Rocket::specificImpulse() const
+    {
+        return specificImpulse_;
+    }
+
     double Rocket::getCrossSectionArea() const
     {
         return crossSectionArea_;
@@ -142,4 +152,21 @@ namespace sim::core
         return burnRate_;
     }
 
+    std::string Rocket::toJson() const
+    {
+        return "{"
+               "\"position\":[" +
+               std::to_string(position_.x()) + "," + std::to_string(position_.y()) + "," + std::to_string(position_.z()) + "],"
+                                                                                                                           "\"velocity\":[" +
+               std::to_string(velocity_.x()) + "," + std::to_string(velocity_.y()) + "," + std::to_string(velocity_.z()) + "],"
+                                                                                                                           "\"thrustDirection\":[" +
+               std::to_string(thrustDirection_.x()) + "," + std::to_string(thrustDirection_.y()) + "," + std::to_string(thrustDirection_.z()) + "],"
+                                                                                                                                                "\"fuelMass\":" +
+               std::to_string(fuelMass_) + ","
+                                           "\"thrustLevel\":" +
+               std::to_string(thrustLevel_) + ","
+                                              "\"totalMass\":" +
+               std::to_string(totalMass()) +
+               "}";
+    }
 }

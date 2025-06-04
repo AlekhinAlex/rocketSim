@@ -90,4 +90,43 @@ namespace sim::core
         return bestScore_;
     }
 
+    std::shared_ptr<Simulator> Optimizer::createOptimizedSimulator()
+    {
+        auto env = std::make_shared<Environment>();
+        auto rocket = std::make_shared<Rocket>(
+            bestRocket_->dryMass(),
+            bestRocket_->fuelMass(),
+            bestRocket_->burnRate(),
+            bestRocket_->specificImpulse(),
+            bestRocket_->getCrossSectionArea(),
+            bestRocket_->getDragCoefficient());
+        auto autopilot = std::make_shared<GravityTurnAutopilot>(
+            bestAutopilot_->targetAltitude(),
+            destination_,
+            env,
+            bestAutopilot_->turnStartAltitude(),
+            bestAutopilot_->turnRate(),
+            bestAutopilot_->maxAngularVelocity());
+
+        return std::make_shared<Simulator>(rocket, env, destination_, autopilot);
+    }
+
+    std::string Optimizer::toJson() const
+    {
+        return "{"
+               "\"dryMass\":" +
+               std::to_string(bestRocket_->dryMass()) + ","
+                                                        "\"initialFuel\":" +
+               std::to_string(bestRocket_->fuelMass()) + ","
+                                                         "\"burnRate\":" +
+               std::to_string(bestRocket_->burnRate()) + ","
+                                                         "\"specificImpulse\":" +
+               std::to_string(bestRocket_->specificImpulse()) + ","
+                                                                "\"turnStartAltitude\":" +
+               std::to_string(bestAutopilot_->turnStartAltitude()) + ","
+                                                                     "\"turnRate\":" +
+               std::to_string(bestAutopilot_->turnRate()) +
+               "}";
+    }
+
 } // namespace sim::core

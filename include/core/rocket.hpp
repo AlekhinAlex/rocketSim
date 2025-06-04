@@ -7,7 +7,7 @@ namespace sim::core
 
     class Rocket
     {
-    private:
+    protected:
         Vector3 position_, velocity_, thrustDirection_;
         double dryMass_, fuelMass_;
         double burnRate_;
@@ -34,6 +34,8 @@ namespace sim::core
 
         double totalMass() const;
         double dryMass() const;
+        double fuelMass() const;
+        double specificImpulse() const;
 
         double specificImpulse() const;
         double burnRate() const;
@@ -46,5 +48,28 @@ namespace sim::core
 
         Vector3 velocity() const;
         void setVelocity(const Vector3 &vel);
+
+        struct RocketState
+        {
+            Vector3 position;
+            Vector3 velocity;
+            Vector3 thrustDirection;
+            double fuelMass;
+            double thrustLevel;
+            double totalMass;
+        };
+
+        RocketState getState() const
+        {
+            return {
+                position_,
+                velocity_,
+                thrustDirection_,
+                fuelMass_,
+                thrustLevel_,
+                totalMass()};
+        }
+
+        std::string toJson() const;
     };
 }

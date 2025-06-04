@@ -176,4 +176,19 @@ namespace sim::core
         }
     }
 
+    Rocket::RocketState Simulator::getRocketState() const
+    {
+        return rocket_->getState();
+    }
+
+    void Simulator::reset()
+    {
+        time_ = 0.0;
+        minDistance_ = std::numeric_limits<double>::max();
+        wasClose_ = false;
+        rocket_->setPosition(Vector3(0, config::EARTH_RADIUS + 1.0, 0));
+        rocket_->setVelocity(Vector3(0, 0, 0));
+        rocket_->setThrustLevel(0.0);
+    }
+
 }

@@ -43,6 +43,9 @@ namespace sim::core
         double time() const;
         const Rocket &rocket() const;
         const Environment &environment() const;
+
+        Rocket::RocketState getRocketState() const;
+        void reset();
     };
 
 } // namespace sim::core
