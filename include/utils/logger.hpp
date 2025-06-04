@@ -10,7 +10,8 @@ namespace sim::utils
         Debug,
         Info,
         Warning,
-        Error
+        Error,
+        None
     };
 
     class Logger

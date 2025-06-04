@@ -29,7 +29,7 @@ namespace sim::core
         Vector3 calculateTotalForce() const;
         void updateRocketState(double dt, const Vector3 &acceleration);
 
-        void run(double dt);
+        void run(double dt = sim::utils::config::TIME_STEP);
         void step(double dt);
 
         void setDestination(const Vector3 &destination);

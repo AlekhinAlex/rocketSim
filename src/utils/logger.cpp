@@ -15,7 +15,7 @@ namespace sim::utils
 
     void Logger::log(const std::string &message, LogLevel level)
     {
-        if (level < currentLogLevel)
+        if (level < currentLogLevel || currentLogLevel == LogLevel::None)
         {
             return;
         }
@@ -25,6 +25,8 @@ namespace sim::utils
         // Определяем цвет и текст для уровня
         switch (level)
         {
+        case LogLevel::None:
+            return;
         case LogLevel::Debug:
             levelText = "DEBUG";
             break;
@@ -45,6 +47,8 @@ namespace sim::utils
         std::cout << "[";
         switch (level)
         {
+        case LogLevel::None:
+            return;
         case LogLevel::Debug:
             std::cout << termcolor::cyan << levelText << termcolor::reset;
             break;
