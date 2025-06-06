@@ -199,7 +199,7 @@ function easeInOutQuad(t) {
 function animate(time = 0) {
   requestAnimationFrame(animate);
 
-  earth.rotation.y += 0.0007;
+  earth.rotation.y += 0;
   clouds.rotation.y += 0.001;
 
   starMaterial.uniforms.time.value = time / 1000;
@@ -211,7 +211,7 @@ function animate(time = 0) {
     const elapsed = time - animationStartTime;
     const progress = Math.min(elapsed / animationDuration, 1);
     const easedProgress = easeInOutQuad(progress);
-
+    earth.rotation.y;
     camera.position.lerpVectors(
       startCameraPosition,
       endCameraPosition,
@@ -226,7 +226,6 @@ function animate(time = 0) {
     if (progress >= 1) {
       animationStartTime = null;
       controls.enabled = true;
-
       renderReactComponent();
     }
   }
