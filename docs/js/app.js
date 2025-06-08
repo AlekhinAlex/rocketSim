@@ -1,3 +1,7 @@
+// Selectign a target
+let selectingTarget = false;
+let targetMarker = null;
+let targetPosition = null;
 
 const container = document.getElementById("scene-container");
 const scene = new THREE.Scene();
@@ -199,7 +203,6 @@ function easeInOutQuad(t) {
 function animate(time = 0) {
   requestAnimationFrame(animate);
 
-  earth.rotation.y += 0;
   clouds.rotation.y += 0.001;
 
   starMaterial.uniforms.time.value = time / 1000;
@@ -236,5 +239,69 @@ function animate(time = 0) {
 
   renderer.render(scene, camera);
 }
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+renderer.domElement.addEventListener("click", (event) => {
+  console.log("Click event triggered");
+
+  if (!window.selectingTarget) {
+    console.log("Not in target selection mode");
+    return;
+  }
+
+  if (event.target !== renderer.domElement) {
+    console.log("Click was not on canvas");
+    return;
+  }
+
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  console.log(`Mouse coordinates: x=${mouse.x}, y=${mouse.y}`);
+
+  raycaster.setFromCamera(mouse, camera);
+
+  const distance = 5;
+  const direction = new THREE.Vector3();
+  camera.getWorldDirection(direction);
+  const targetPoint = new THREE.Vector3();
+  raycaster.ray.at(distance, targetPoint);
+
+  targetPosition = targetPoint;
+  console.log("Target selected in space at:", targetPosition);
+
+  if (targetMarker) {
+    scene.remove(targetMarker);
+  }
+
+  const markerGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+  const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+  targetMarker = new THREE.Mesh(markerGeometry, markerMaterial);
+  targetMarker.position.copy(targetPosition);
+  scene.add(targetMarker);
+
+  window.selectingTarget = false;
+  console.log("Target selection completed");
+
+  const helpElement = document.getElementById('target-help-message');
+  if (helpElement) helpElement.remove();
+
+  if (window.setMenuPointerEvents) {
+    window.setMenuPointerEvents(true);
+  }
+  if (window.setMenuVisible) {
+    window.setMenuVisible(true);
+  }
+});
+
+window.setMenuVisible = (visible) => {
+  const panel = document.getElementById("right-panel-wrapper");
+  if (panel) {
+    panel.style.width = visible ? "320px" : "0px";
+    panel.style.pointerEvents = visible ? "auto" : "none";
+  }
+};
 
 animate();

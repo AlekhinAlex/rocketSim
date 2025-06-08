@@ -1,3 +1,11 @@
+window.setMenuPointerEvents = (value) => {
+  const panel = document.getElementById("right-panel-wrapper");
+  if (panel) {
+    panel.style.pointerEvents = value ? "auto" : "none";
+  }
+};
+
+
 function renderReactComponent() {
   const rootElement = document.getElementById("react-root");
 
@@ -93,7 +101,8 @@ function renderReactComponent() {
           overflow: "hidden",
           backgroundColor: "transparent",
           zIndex: 1000,
-          transition: "width 0.3s"
+          transition: "width 0.3s",
+          pointerEvents: menuVisible ? "auto" : "none"
         }
       }, menuVisible && React.createElement("div", {
         key: "right-panel",
@@ -176,7 +185,8 @@ function renderReactComponent() {
               disabled: autoSettings,
               style: {
                 ...inputStyle,
-                backgroundColor: autoSettings ? "#f0f0f0" : inputStyle.background
+                backgroundColor: autoSettings ? "#f0f0f0" : inputStyle.background,
+                width: "90%"
               }
             })
           ])
@@ -186,7 +196,11 @@ function renderReactComponent() {
         React.createElement("button", {
           key: "select-destination",
           onClick: () => {
-            // This will use the existing click handler in app.js
+            // Добавляем глобальную переменную
+            window.selectingTarget = true;
+            console.log("Selecting target mode activated");
+            setMenuVisible(false);
+
             const helpElement = document.createElement('div');
             helpElement.style.position = 'fixed';
             helpElement.style.bottom = '20px';
@@ -198,10 +212,17 @@ function renderReactComponent() {
             helpElement.style.borderRadius = '5px';
             helpElement.style.zIndex = '1000';
             helpElement.textContent = 'Click anywhere in space to set destination';
+            helpElement.id = 'target-help-message';
             document.body.appendChild(helpElement);
 
             setTimeout(() => {
-              helpElement.remove();
+              if (window.selectingTarget) {
+                console.log("Target selection timeout");
+                window.selectingTarget = false;
+                const helpElement = document.getElementById('target-help-message');
+                if (helpElement) helpElement.remove();
+                setMenuVisible(true);
+              }
             }, 5000);
           },
           style: {
@@ -213,7 +234,16 @@ function renderReactComponent() {
             borderRadius: "8px",
             cursor: "pointer",
             fontWeight: "500",
-            fontSize: "14px"
+            fontSize: "14px",
+            transition: "0.25s"
+          },
+          onMouseEnter: (e) => {
+            e.target.style.transform = "translateY(-2px)";
+            e.target.style.boxShadow = "0 6px 16px rgba(0, 0, 0, 0.25)";
+          },
+          onMouseLeave: (e) => {
+            e.target.style.transform = "translateY(0)";
+            e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2)";
           }
         }, "Select Destination"),
 
@@ -234,7 +264,7 @@ function renderReactComponent() {
             fontWeight: "600",
             fontSize: "15px",
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-            transition: "all 0.25s ease"
+            transition: "all 0.25s"
           },
           onMouseEnter: (e) => {
             e.target.style.transform = "translateY(-2px)";
