@@ -15,12 +15,14 @@ namespace sim::core
                                                double turnStartAltitude,
                                                double turnRate,
                                                double maxAngularVelocity)
-        : targetAltitude_(targetAltitude),
+        : targetAltitude_(targetAltitude * 3), //! Удвоенная целевая высота
           destination_(destination),
           environment_(environment),
           turnStartAltitude_(turnStartAltitude),
-          turnRate_(turnRate),
-          maxAngularVelocity_(maxAngularVelocity) {}
+          turnRate_(turnRate * 0.5), //! Медленнее поворот
+          maxAngularVelocity_(maxAngularVelocity)
+    {
+    }
 
     void GravityTurnAutopilot::update(Rocket &rocket, const Vector3 &totalForce, double time, double dt)
     {
@@ -37,7 +39,7 @@ namespace sim::core
         if (altitude < 0)
         {
             altitude = 0;
-            Logger::warning("Altitude is negative, clamping to 0. Check rocket position initialization.");
+            // TODO:Logger::warning("Altitude is negative, clamping to 0. Check rocket position initialization.");
         }
         //!==================
 

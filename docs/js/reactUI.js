@@ -21,6 +21,7 @@ function renderReactComponent() {
 
     const [menuVisible, setMenuVisible] = React.useState(true);
     const [autoSettings, setAutoSettings] = React.useState(false);
+    const [showAxes, setShowAxes] = React.useState(false);
 
     const defaultAutoParams = {
       dryMass: 4200,
@@ -196,7 +197,6 @@ function renderReactComponent() {
         React.createElement("button", {
           key: "select-destination",
           onClick: () => {
-            // Добавляем глобальную переменную
             window.selectingTarget = true;
             console.log("Selecting target mode activated");
             setMenuVisible(false);
@@ -249,9 +249,18 @@ function renderReactComponent() {
 
         // Start Button
         React.createElement("button", {
-          key: "start-button",
-          onClick: () => {
-            document.getElementById("start-button").click();
+          key: "launch-simulation-button",
+          onClick: async () => {
+            if (!window.simulationInitialized) {
+              console.log("Initializing simulation...");
+              const success = await window.initSimulation();
+              if (!success) {
+                alert("Failed to initialize simulation. Please try again.");
+                return;
+              }
+            }
+            console.log("Simulation started");
+
           },
           style: {
             marginTop: "20px",
@@ -274,7 +283,37 @@ function renderReactComponent() {
             e.target.style.transform = "translateY(0)";
             e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2)";
           }
-        }, "Start Simulation")
+        }, "Launch Simulation"),
+        React.createElement("button", {
+          key: "toggle-axes",
+          onClick: () => {
+            const newState = !showAxes;
+            if (window.toggleAxes) {
+              window.toggleAxes(newState);
+            }
+            setShowAxes(newState);
+          },
+          style: {
+            marginTop: "10px",
+            padding: "10px 16px",
+            backgroundColor: "#6b4feb",
+            color: "#fff",
+            border: "none",
+            borderRadius: "8px",
+            cursor: "pointer",
+            fontWeight: "500",
+            fontSize: "14px",
+            transition: "0.25s"
+          },
+          onMouseEnter: (e) => {
+            e.target.style.transform = "translateY(-2px)";
+            e.target.style.boxShadow = "0 6px 16px rgba(0, 0, 0, 0.25)";
+          },
+          onMouseLeave: (e) => {
+            e.target.style.transform = "translateY(0)";
+            e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2)";
+          }
+        }, showAxes ? "Hide Axes" : "Show Axes")
       ]))
     ]);
   };

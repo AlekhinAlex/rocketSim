@@ -46,6 +46,24 @@ namespace sim::core
 
         Rocket::RocketState getRocketState() const;
         void reset();
+
+    public: // VISUALISATION SECTION
+        Vector3 physicsToVisual(const Vector3 &physicsPos) const
+        {
+            return physicsPos * sim::utils::config::PHYSICS_TO_VISUAL_SCALE;
+        }
+
+        Vector3 visualToPhysics(const Vector3 &visualPos) const
+        {
+            return visualPos * sim::utils::config::VISUAL_TO_PHYSICS_SCALE;
+        }
+
+        Rocket::RocketState getVisualState() const
+        {
+            auto state = rocket_->getState();
+            state.position = physicsToVisual(state.position);
+            return state;
+        }
     };
 
 } // namespace sim::core

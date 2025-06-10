@@ -17,16 +17,17 @@
         Experience realistic rocket physics as you launch from Earth to any
         destination in space
       </p>
-      <button id="start-button">Get Started</button>
+      <button id="view-rocket-button">Get Started</button>
     </div>
 
     <div id="react-root"></div>
+    <script type="module" src="wasm/rocket_sim.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
 
     <script src="js/reactUI.js"></script>
-    <script src="js/app.js"></script>
+    <script type="module" src="js/app.js"></script>
   </body>
 </html>

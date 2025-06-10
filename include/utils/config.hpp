@@ -17,6 +17,10 @@ namespace sim::utils
         constexpr double TIME_STEP = 0.01; // s
 
         constexpr double PI = 3.14159265358979323846;
+
+        constexpr double VISUAL_EARTH_RADIUS = 7.0;
+        constexpr double PHYSICS_TO_VISUAL_SCALE = VISUAL_EARTH_RADIUS / EARTH_RADIUS;
+        constexpr double VISUAL_TO_PHYSICS_SCALE = EARTH_RADIUS / VISUAL_EARTH_RADIUS;
     }
 
 } // namespace sim::utils

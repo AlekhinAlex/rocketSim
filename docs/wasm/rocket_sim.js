@@ -2327,6 +2327,16 @@ async function createWasm() {
     };
 
   
+  var __embind_register_constant = (name, type, value) => {
+      name = readLatin1String(name);
+      whenDependentTypesAreResolved([], [type], (type) => {
+        type = type[0];
+        Module[name] = type['fromWireType'](value);
+        return [];
+      });
+    };
+
+  
   var emval_freelist = [];
   
   var emval_handles = [0,1,,1,null,1,true,1,false,1];
@@ -2509,6 +2519,45 @@ async function createWasm() {
         'readValueFromPointer': decodeMemoryView,
       }, {
         ignoreDuplicateRegistrations: true,
+      });
+    };
+
+  
+  
+  var __embind_register_smart_ptr = (rawType,
+                                 rawPointeeType,
+                                 name,
+                                 sharingPolicy,
+                                 getPointeeSignature,
+                                 rawGetPointee,
+                                 constructorSignature,
+                                 rawConstructor,
+                                 shareSignature,
+                                 rawShare,
+                                 destructorSignature,
+                                 rawDestructor) => {
+      name = readLatin1String(name);
+      rawGetPointee = embind__requireFunction(getPointeeSignature, rawGetPointee);
+      rawConstructor = embind__requireFunction(constructorSignature, rawConstructor);
+      rawShare = embind__requireFunction(shareSignature, rawShare);
+      rawDestructor = embind__requireFunction(destructorSignature, rawDestructor);
+  
+      whenDependentTypesAreResolved([rawType], [rawPointeeType], (pointeeType) => {
+        pointeeType = pointeeType[0];
+  
+        var registeredPointer = new RegisteredPointer(name,
+                                                      pointeeType.registeredClass,
+                                                      false,
+                                                      false,
+                                                      // smart pointer properties
+                                                      true,
+                                                      pointeeType,
+                                                      sharingPolicy,
+                                                      rawGetPointee,
+                                                      rawConstructor,
+                                                      rawShare,
+                                                      rawDestructor);
+        return [registeredPointer];
       });
     };
 
@@ -2957,6 +3006,110 @@ async function createWasm() {
         // TODO: assert if anything else is given?
         'toWireType': (destructors, o) => undefined,
       });
+    };
+
+  var emval_methodCallers = [];
+  
+  var __emval_call = (caller, handle, destructorsRef, args) => {
+      caller = emval_methodCallers[caller];
+      handle = Emval.toValue(handle);
+      return caller(null, handle, destructorsRef, args);
+    };
+
+
+  var emval_addMethodCaller = (caller) => {
+      var id = emval_methodCallers.length;
+      emval_methodCallers.push(caller);
+      return id;
+    };
+  
+  
+  
+  var requireRegisteredType = (rawType, humanName) => {
+      var impl = registeredTypes[rawType];
+      if (undefined === impl) {
+        throwBindingError(`${humanName} has unknown type ${getTypeName(rawType)}`);
+      }
+      return impl;
+    };
+  var emval_lookupTypes = (argCount, argTypes) => {
+      var a = new Array(argCount);
+      for (var i = 0; i < argCount; ++i) {
+        a[i] = requireRegisteredType(HEAPU32[(((argTypes)+(i*4))>>2)],
+                                     `parameter ${i}`);
+      }
+      return a;
+    };
+  
+  
+  var emval_returnValue = (returnType, destructorsRef, handle) => {
+      var destructors = [];
+      var result = returnType['toWireType'](destructors, handle);
+      if (destructors.length) {
+        // void, primitives and any other types w/o destructors don't need to allocate a handle
+        HEAPU32[((destructorsRef)>>2)] = Emval.toHandle(destructors);
+      }
+      return result;
+    };
+  var __emval_get_method_caller = (argCount, argTypes, kind) => {
+      var types = emval_lookupTypes(argCount, argTypes);
+      var retType = types.shift();
+      argCount--; // remove the shifted off return type
+  
+      var functionBody =
+        `return function (obj, func, destructorsRef, args) {\n`;
+  
+      var offset = 0;
+      var argsList = []; // 'obj?, arg0, arg1, arg2, ... , argN'
+      if (kind === /* FUNCTION */ 0) {
+        argsList.push('obj');
+      }
+      var params = ['retType'];
+      var args = [retType];
+      for (var i = 0; i < argCount; ++i) {
+        argsList.push(`arg${i}`);
+        params.push(`argType${i}`);
+        args.push(types[i]);
+        functionBody +=
+          `  var arg${i} = argType${i}.readValueFromPointer(args${offset ? '+' + offset : ''});\n`;
+        offset += types[i].argPackAdvance;
+      }
+      var invoker = kind === /* CONSTRUCTOR */ 1 ? 'new func' : 'func.call';
+      functionBody +=
+        `  var rv = ${invoker}(${argsList.join(', ')});\n`;
+      if (!retType.isVoid) {
+        params.push('emval_returnValue');
+        args.push(emval_returnValue);
+        functionBody +=
+          '  return emval_returnValue(retType, destructorsRef, rv);\n';
+      }
+      functionBody +=
+        "};\n";
+  
+      var invokerFunction = new Function(...params, functionBody)(...args);
+      var functionName = `methodCaller<(${types.map(t => t.name).join(', ')}) => ${retType.name}>`;
+      return emval_addMethodCaller(createNamedFunction(functionName, invokerFunction));
+    };
+
+  var __emval_incref = (handle) => {
+      if (handle > 9) {
+        emval_handles[handle + 1] += 1;
+      }
+    };
+
+  
+  
+  var __emval_run_destructors = (handle) => {
+      var destructors = Emval.toValue(handle);
+      runDestructors(destructors);
+      __emval_decref(handle);
+    };
+
+  
+  var __emval_take_value = (type, arg) => {
+      type = requireRegisteredType(type, '_emval_take_value');
+      var v = type['readValueFromPointer'](arg);
+      return Emval.toHandle(v);
     };
 
   
@@ -6193,7 +6346,6 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
   'demangle',
   'stackTrace',
   'getFunctionArgsName',
-  'requireRegisteredType',
   'createJsInvokerSignature',
   'PureVirtualError',
   'registerInheritedInstance',
@@ -6205,9 +6357,6 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
   'count_emval_handles',
   'getStringOrSymbol',
   'emval_get_global',
-  'emval_returnValue',
-  'emval_lookupTypes',
-  'emval_addMethodCaller',
 ];
 missingLibrarySymbols.forEach(missingLibrarySymbol)
 
@@ -6474,6 +6623,7 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'getTypeName',
   'getFunctionName',
   'heap32VectorToArray',
+  'requireRegisteredType',
   'usesDestructorStack',
   'checkArgCount',
   'getRequiredArgCount',
@@ -6531,7 +6681,10 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'emval_handles',
   'emval_symbols',
   'Emval',
+  'emval_returnValue',
+  'emval_lookupTypes',
   'emval_methodCallers',
+  'emval_addMethodCaller',
   'reflectConstruct',
 ];
 unexportedSymbols.forEach(unexportedRuntimeSymbol);
@@ -6563,6 +6716,8 @@ var wasmImports = {
   /** @export */
   _embind_register_class_property: __embind_register_class_property,
   /** @export */
+  _embind_register_constant: __embind_register_constant,
+  /** @export */
   _embind_register_emval: __embind_register_emval,
   /** @export */
   _embind_register_float: __embind_register_float,
@@ -6573,11 +6728,25 @@ var wasmImports = {
   /** @export */
   _embind_register_memory_view: __embind_register_memory_view,
   /** @export */
+  _embind_register_smart_ptr: __embind_register_smart_ptr,
+  /** @export */
   _embind_register_std_string: __embind_register_std_string,
   /** @export */
   _embind_register_std_wstring: __embind_register_std_wstring,
   /** @export */
   _embind_register_void: __embind_register_void,
+  /** @export */
+  _emval_call: __emval_call,
+  /** @export */
+  _emval_decref: __emval_decref,
+  /** @export */
+  _emval_get_method_caller: __emval_get_method_caller,
+  /** @export */
+  _emval_incref: __emval_incref,
+  /** @export */
+  _emval_run_destructors: __emval_run_destructors,
+  /** @export */
+  _emval_take_value: __emval_take_value,
   /** @export */
   _tzset_js: __tzset_js,
   /** @export */

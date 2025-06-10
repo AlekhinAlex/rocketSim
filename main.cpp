@@ -13,7 +13,7 @@ using namespace sim::utils;
 
 int main()
 {
-    Logger::setLevel(LogLevel::None);
+
     auto env = std::make_shared<Environment>();
     Vector3 destination(40000, 100000.0 + config::EARTH_RADIUS, 90000);
 

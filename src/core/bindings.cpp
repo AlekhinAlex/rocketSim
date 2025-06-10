@@ -5,31 +5,47 @@
 #include "../../include/core/vector3.hpp"
 #include "../../include/core/autopilot.hpp"
 #include "../../include/core/environment.hpp"
+#include "../../include/utils/logger.hpp"
 #include <memory>
 
 using namespace emscripten;
 
-// Helper functions for JavaScript interface
 namespace
 {
-    sim::core::Environment *createEnvironment()
+    std::shared_ptr<sim::core::Environment> createEnvironment()
     {
-        return new sim::core::Environment();
+        return std::make_shared<sim::core::Environment>();
     }
 
-    //! It takes 2 param in Cpp and 1 in js for "cozysness"
-    sim::core::Optimizer *createOptimizer(sim::core::Vector3 destination)
+    std::shared_ptr<sim::core::Optimizer> createOptimizer(sim::core::Vector3 &destination)
     {
-        auto env = std::shared_ptr<sim::core::Environment>(createEnvironment());
-        return new sim::core::Optimizer(env, destination);
+        auto env = createEnvironment();
+        if (!env)
+        {
+            throw std::runtime_error("Returned null env");
+        }
+        return std::make_shared<sim::core::Optimizer>(env, destination);
     }
 
-    sim::core::Simulator *createSimulator(sim::core::Optimizer *optimizer, sim::core::Vector3 destination)
+    std::shared_ptr<sim::core::Simulator> createSimulator(sim::core::Vector3 destination)
     {
-        auto env = std::shared_ptr<sim::core::Environment>(createEnvironment());
+        auto env = createEnvironment();
+        auto optimizer = createOptimizer(destination);
+        optimizer->optimize(100);
+
+        sim::utils::Logger::info("Starting optimization");
+
         auto bestRocket = optimizer->getBestRocket();
         auto bestAutopilot = optimizer->getBestAutopilot();
-        return new sim::core::Simulator(bestRocket, env, destination, bestAutopilot);
+
+        sim::utils::Logger::info("Success");
+
+        if (!bestRocket || !bestAutopilot)
+        {
+            throw std::runtime_error(" Returned null rocket or autopilot");
+        }
+
+        return std::make_shared<sim::core::Simulator>(bestRocket, env, destination, bestAutopilot);
     }
 }
 
@@ -42,10 +58,12 @@ EMSCRIPTEN_BINDINGS(simulator)
         .property("y", &sim::core::Vector3::y, &sim::core::Vector3::setY)
         .property("z", &sim::core::Vector3::z, &sim::core::Vector3::setZ)
         .function("length", &sim::core::Vector3::length)
-        .function("normalized", &sim::core::Vector3::normalized);
+        .function("normalized", &sim::core::Vector3::normalized)
+        .function("multiplyScalar", &sim::core::Vector3::operator*);
 
     // Environment binding
     class_<sim::core::Environment>("Environment")
+        .smart_ptr<std::shared_ptr<sim::core::Environment>>("shared_ptr<Environment>")
         .constructor<>()
         .function("computeGravityForce", &sim::core::Environment::computeGravityForce)
         .function("computeDragForce", &sim::core::Environment::computeDragForce);
@@ -67,19 +85,32 @@ EMSCRIPTEN_BINDINGS(simulator)
 
     // Optimizer binding
     class_<sim::core::Optimizer>("Optimizer")
+        .smart_ptr<std::shared_ptr<sim::core::Optimizer>>("shared_ptr<Optimizer>")
+        .constructor<std::shared_ptr<sim::core::Environment>, const sim::core::Vector3 &>()
         .function("optimize", &sim::core::Optimizer::optimize)
         .function("getBestRocket", &sim::core::Optimizer::getBestRocket)
         .function("getBestAutopilot", &sim::core::Optimizer::getBestAutopilot);
 
     // Simulator binding
     class_<sim::core::Simulator>("Simulator")
+        .smart_ptr<std::shared_ptr<sim::core::Simulator>>("shared_ptr<Simulator>")
         .function("step", &sim::core::Simulator::step)
         .function("run", &sim::core::Simulator::run)
-        .function("rocket", &sim::core::Simulator::rocket);
+        .function("rocket", &sim::core::Simulator::rocket)
+        .function("physicsToVisual", &sim::core::Simulator::physicsToVisual)
+        .function("visualToPhysics", &sim::core::Simulator::visualToPhysics)
+        .function("getVisualState", &sim::core::Simulator::getVisualState)
+        .function("destination", &sim::core::Simulator::destination);
 
-    // Helper functions with allow_raw_pointer for return values and arguments
-    function("createEnvironment", &createEnvironment, allow_raw_pointers());
-    function("createOptimizer", &createOptimizer, allow_raw_pointers());
-    function("createSimulator", &createSimulator, allow_raw_pointers());
+    // Constants
+    constant("PHYSICS_TO_VISUAL_SCALE", sim::utils::config::PHYSICS_TO_VISUAL_SCALE);
+    constant("VISUAL_TO_PHYSICS_SCALE", sim::utils::config::VISUAL_TO_PHYSICS_SCALE);
+    constant("VISUAL_EARTH_RADIUS", sim::utils::config::VISUAL_EARTH_RADIUS);
+    constant("EARTH_RADIUS", sim::utils::config::EARTH_RADIUS);
+
+    // Helper functions
+    function("createEnvironment", &createEnvironment);
+    function("createOptimizer", &createOptimizer);
+    function("createSimulator", &createSimulator);
 }
 #endif // USE_EMSCRIPTEN

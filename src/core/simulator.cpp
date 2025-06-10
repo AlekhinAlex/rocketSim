@@ -20,6 +20,9 @@ namespace sim::core
           destination_(destination)
     {
         rocket_->setPosition(Vector3(0, sim::utils::config::EARTH_RADIUS + 1.0, 0));
+        Logger::debug("Simulator initialized");
+        Logger::debug("Rocket position: (" + std::to_string(rocket_->position().x()) + ", " + std::to_string(rocket_->position().y()) + ", " + std::to_string(rocket_->position().z()) + ")");
+        Logger::debug("Destination: (" + std::to_string(destination_.x()) + ", " + std::to_string(destination_.y()) + ", " + std::to_string(destination_.z()) + ")");
     }
 
     void Simulator::setDestination(const Vector3 &destination)

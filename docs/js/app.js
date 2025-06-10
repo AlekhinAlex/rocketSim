@@ -19,6 +19,20 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 container.appendChild(renderer.domElement);
 
+let showAxes = false;
+const axesHelper = new THREE.AxesHelper(100);
+if (showAxes) scene.add(axesHelper);
+
+window.toggleAxes = (visible) => {
+  showAxes = visible;
+  if (visible) {
+    scene.add(axesHelper);
+  } else {
+    scene.remove(axesHelper);
+  }
+};
+
+
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -147,7 +161,7 @@ const rocketMaterial = new THREE.MeshPhongMaterial({
 const rocket = new THREE.Mesh(rocketGeometry, rocketMaterial);
 
 const rocketDistance = earthRadius + 0.05;
-rocket.position.set(rocketDistance, 0, 0);
+rocket.position.set(0, rocketDistance, 0);
 rocket.rotation.z = -Math.PI / 2;
 scene.add(rocket);
 
@@ -168,7 +182,7 @@ controls.target.copy(earth.position);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 controls.screenSpacePanning = false;
-controls.minDistance = earthRadius + 0.5;
+controls.minDistance = earthRadius + 1;
 controls.maxDistance = earthRadius * 150;
 controls.enablePan = false;
 controls.enabled = false;
@@ -183,8 +197,7 @@ const endCameraPosition = new THREE.Vector3(
   rocketDistance * 1.2
 );
 
-// Start button
-document.getElementById("start-button").addEventListener("click", () => {
+document.getElementById("view-rocket-button").addEventListener("click", () => {
   document.body.classList.add("transitioning");
   animationStartTime = performance.now();
 
@@ -244,10 +257,8 @@ const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
 renderer.domElement.addEventListener("click", (event) => {
-  console.log("Click event triggered");
 
   if (!window.selectingTarget) {
-    console.log("Not in target selection mode");
     return;
   }
 
@@ -303,5 +314,126 @@ window.setMenuVisible = (visible) => {
     panel.style.pointerEvents = visible ? "auto" : "none";
   }
 };
+
+
+import createRocketSimModule from '/wasm/rocket_sim.js';
+
+let Module;
+async function initializeWASM() {
+  try {
+    Module = await createRocketSimModule();
+    console.log("WASM module fully initialized");
+    window.Module = Module;
+    window.ModuleReady = true;
+    window.initSimulation = initSimulation;
+  } catch (error) {
+    console.error("WASM initialization failed:", error);
+  }
+}
+
+initializeWASM();
+
+async function initSimulation() {
+  if (!window.ModuleReady) {
+    console.error("WASM module not ready yet");
+    return false;
+  }
+
+  try {
+    // Create environment and destination vector
+    const env = new Module.Environment();
+    // const destination = targetPosition
+    //   ? new Module.Vector3(targetPosition.x * Module.VISUAL_TO_PHYSICS_SCALE,
+    //     targetPosition.y * Module.VISUAL_TO_PHYSICS_SCALE,
+    //     targetPosition.z * Module.VISUAL_TO_PHYSICS_SCALE)
+    //   : new Module.Vector3(0, 0, 0);
+
+    //! Testing if working...
+
+    const destination = new Module.Vector3(
+      40000,
+      earthRadius * Module.VISUAL_TO_PHYSICS_SCALE,
+      90000
+    );
+
+    //! Worked!
+    //TODO: need more accurate coordinates analizer in logic?
+
+    // console.log(targetPosition.x * Module.VISUAL_TO_PHYSICS_SCALE,
+    //   targetPosition.y * Module.VISUAL_TO_PHYSICS_SCALE,
+    //   targetPosition.z * Module.VISUAL_TO_PHYSICS_SCALE);
+
+    // const optimizer = new Module.Optimizer(env, destination);
+    // optimizer.optimize(100);
+
+
+    const simulator = Module.createSimulator(destination);
+    window.simulator = simulator;
+    window.simulationInitialized = true;
+
+    console.log("Simulator ready!");
+
+    startVisualizationLoop();
+    return true;
+  } catch (error) {
+    console.error("Simulation initialization failed:", error);
+    return false;
+  }
+}
+
+function startVisualizationLoop() {
+  // Создаем объект ракеты в Three.js
+  const rocketGeometry = new THREE.ConeGeometry(0.25, 0.7, 32);
+  const rocketMaterial = new THREE.MeshPhongMaterial({
+    color: 0xff6600,
+    emissive: 0xff3300,
+    emissiveIntensity: 0.6,
+    shininess: 20
+  });
+  const rocket = new THREE.Mesh(rocketGeometry, rocketMaterial);
+  scene.add(rocket);
+
+  // Функция обновления визуализации
+  function updateVisualization() {
+    // Получаем визуальное состояние из симулятора
+    const visualState = window.simulator.getVisualState();
+
+    console.log(visualState);
+
+    // Обновляем позицию ракеты
+    rocket.position.set(
+      visualState.position.x,
+      visualState.position.y,
+      visualState.position.z
+    );
+
+    // Обновляем ориентацию ракеты (направление тяги)
+    const thrustDir = visualState.thrustDirection;
+    rocket.lookAt(new THREE.Vector3(
+      rocket.position.x + thrustDir.x,
+      rocket.position.y + thrustDir.y,
+      rocket.position.z + thrustDir.z
+    ));
+
+    // Делаем шаг симуляции
+    window.simulator.step(0.016); // ~60 FPS
+  }
+
+  // Интеграция с Three.js анимацией
+  function animate(time) {
+    requestAnimationFrame(animate);
+
+    // Обновляем визуализацию
+    updateVisualization();
+
+    // Остальной код анимации (звезды, облака и т.д.)
+    clouds.rotation.y += 0.001;
+    starMaterial.uniforms.time.value = time / 1000;
+
+    renderer.render(scene, camera);
+  }
+
+  animate();
+}
 
 animate();

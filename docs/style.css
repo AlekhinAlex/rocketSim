@@ -48,7 +48,7 @@ p {
   text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
 }
 
-#start-button {
+#view-rocket-button {
   padding: 15px 45px;
   font-size: 1.5rem;
   background: linear-gradient(45deg, #0077ff, #00bbff);
@@ -62,7 +62,7 @@ p {
   user-select: none;
 }
 
-#start-button:hover {
+#view-rocket-button:hover {
   transform: scale(1.1);
   box-shadow: 0 0 40px rgba(0, 180, 255, 1),
     inset 0 0 15px rgba(255, 255, 255, 0.3);
