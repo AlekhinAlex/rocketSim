@@ -374,7 +374,7 @@ window.setMenuVisible = (visible) => {
 };
 
 
-import createRocketSimModule from './wasm/rocket_sim.js';
+import createRocketSimModule from '../wasm/rocket_sim.js';
 
 let Module;
 async function initializeWASM() {
