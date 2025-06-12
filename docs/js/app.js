@@ -1,7 +1,13 @@
 // Selectign a target
 let selectingTarget = false;
+let simulationEnded = false;
 let targetMarker = null;
 let targetPosition = null;
+
+
+const PHYSICS_TIME_STEP = 0.01; // Фиксированный шаг физики (как в C++)
+const RENDER_STEP = 3; // Шаг визуализации (можно увеличить)
+let accumulatedTime = 0;
 
 const container = document.getElementById("scene-container");
 const scene = new THREE.Scene();
@@ -31,8 +37,11 @@ window.toggleAxes = (visible) => {
     scene.remove(axesHelper);
   }
 };
-
-
+let trajectoryPoints = [];
+const trajectoryGeometry = new THREE.BufferGeometry();
+const trajectoryMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+const trajectoryLine = new THREE.Line(trajectoryGeometry, trajectoryMaterial);
+scene.add(trajectoryLine);
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -151,7 +160,7 @@ directionalLight.position.set(5, 3, 5);
 scene.add(directionalLight);
 
 // Rocket
-const rocketGeometry = new THREE.ConeGeometry(0.25, 0.7, 32);
+const rocketGeometry = new THREE.ConeGeometry(0, 0.2, 32);
 const rocketMaterial = new THREE.MeshPhongMaterial({
   color: 0xff6600,
   emissive: 0xff3300,
@@ -263,6 +272,55 @@ renderer.domElement.addEventListener("click", (event) => {
   }
 
   if (event.target !== renderer.domElement) {
+    function checkAndVisualizeArrival(rocketPos) {
+      if (!window.simulator || !targetPosition) return false;
+
+      // Используем встроенную проверку симулятора
+      const hasArrived = window.simulator.isArrived(1500);
+
+      if (hasArrived && !scene.getObjectByName("arrivalMarker")) {
+        // Визуализация прибытия
+        const marker = new THREE.Mesh(
+          new THREE.SphereGeometry(0.05, 16, 16),
+          new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.7 })
+        );
+        marker.position.copy(rocketPos);
+        marker.name = "arrivalMarker";
+        scene.add(marker);
+
+        // Получаем точное расстояние из симулятора
+        const distance = window.simulator.getCurrentDistance();
+        showDistanceInfo(rocketPos, distance);
+      }
+
+      return hasArrived;
+    }
+
+    function showDistanceInfo(position, distance) {
+      let textEl = document.getElementById('arrival-distance-text');
+      if (!textEl) {
+        textEl = document.createElement('div');
+        textEl.id = 'arrival-distance-text';
+        textEl.style.cssText = `
+      position: absolute; color: white; background: rgba(0,0,0,0.7);
+      padding: 5px 10px; border-radius: 5px; pointer-events: none;
+    `;
+        document.body.appendChild(textEl);
+      }
+
+      textEl.textContent = `Arrived! Distance: ${distance.toFixed(2)}m`;
+
+      const updatePosition = () => {
+        const vector = position.clone().project(camera);
+        textEl.style.left = `${(vector.x * 0.5 + 0.5) * window.innerWidth}px`;
+        textEl.style.top = `${(-(vector.y * 0.5) + 0.5) * window.innerHeight}px`;
+
+        if (document.body.contains(textEl)) {
+          requestAnimationFrame(updatePosition);
+        }
+      };
+      updatePosition();
+    }
     console.log("Click was not on canvas");
     return;
   }
@@ -333,6 +391,9 @@ async function initializeWASM() {
 
 initializeWASM();
 
+
+
+
 async function initSimulation() {
   if (!window.ModuleReady) {
     console.error("WASM module not ready yet");
@@ -340,6 +401,7 @@ async function initSimulation() {
   }
 
   try {
+    //Module.Logger.setLevel(Module.LogLevel.None);
     // Create environment and destination vector
     const env = new Module.Environment();
     // const destination = targetPosition
@@ -348,31 +410,43 @@ async function initSimulation() {
     //     targetPosition.z * Module.VISUAL_TO_PHYSICS_SCALE)
     //   : new Module.Vector3(0, 0, 0);
 
-    //! Testing if working...
+
+    //!===============
+    const visualDestination = new THREE.Vector3(
+      -200000 * Module.PHYSICS_TO_VISUAL_SCALE,
+      130000.0 * Module.PHYSICS_TO_VISUAL_SCALE + earthRadius, // Небольшое смещение от поверхности
+      90000 * Module.PHYSICS_TO_VISUAL_SCALE
+    );
+
+    const markerGeometry = new THREE.SphereGeometry(0.05, 32, 32); // Уменьшил размер для лучшего вида
+    const markerMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff0000,
+      transparent: true,
+      opacity: 0.8
+    });
+    const destinationMarker = new THREE.Mesh(markerGeometry, markerMaterial);
+    destinationMarker.position.copy(visualDestination);
+    scene.add(destinationMarker);
+    //!===============
+
 
     const destination = new Module.Vector3(
-      40000,
-      earthRadius * Module.VISUAL_TO_PHYSICS_SCALE,
+      -200000,
+      earthRadius * Module.VISUAL_TO_PHYSICS_SCALE + 130000.0,
       90000
+
     );
+
+    console.log(destination.x, destination.y, destination.z);
 
     //! Worked!
     //TODO: need more accurate coordinates analizer in logic?
 
-    // console.log(targetPosition.x * Module.VISUAL_TO_PHYSICS_SCALE,
-    //   targetPosition.y * Module.VISUAL_TO_PHYSICS_SCALE,
-    //   targetPosition.z * Module.VISUAL_TO_PHYSICS_SCALE);
-
-    // const optimizer = new Module.Optimizer(env, destination);
-    // optimizer.optimize(100);
-
 
     const simulator = Module.createSimulator(destination);
     window.simulator = simulator;
+
     window.simulationInitialized = true;
-
-    console.log("Simulator ready!");
-
     startVisualizationLoop();
     return true;
   } catch (error) {
@@ -381,9 +455,58 @@ async function initSimulation() {
   }
 }
 
+window.resetSimulation = function () {
+  // Сброс всех флагов состояния
+  simulationEnded = false;
+  window.simulationInitialized = false;
+
+  // Очистка траектории без переопределения константы
+  trajectoryPoints.length = 0;
+  trajectoryGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(0), 3));
+
+
+  // Удаление текста расстояния
+  const distanceText = document.getElementById('arrival-distance-text');
+  if (distanceText) distanceText.remove();
+
+  // Удаление маркера прибытия
+  const arrivalMarker = scene.getObjectByName("arrivalMarker");
+  if (arrivalMarker) scene.remove(arrivalMarker);
+
+  // Удаление всех визуальных объектов
+  const objectsToRemove = [];
+  scene.traverse(child => {
+    if (child.name === "rocket" || child.name === "destinationMarker" || child === targetMarker) {
+      objectsToRemove.push(child);
+    }
+  });
+
+  objectsToRemove.forEach(obj => scene.remove(obj));
+
+  // Удаление симулятора
+  if (window.simulator) {
+    if (typeof window.simulator.delete === 'function') {
+      window.simulator.delete();
+    }
+    window.simulator = null;
+  }
+
+  // Сброс маркера цели
+  targetPosition = null;
+  targetMarker = null;
+
+  console.log("Simulation fully reset");
+};
+
+
 function startVisualizationLoop() {
-  // Создаем объект ракеты в Three.js
-  const rocketGeometry = new THREE.ConeGeometry(0.25, 0.7, 32);
+
+  // Убедимся, что предыдущая симуляция очищена
+  if (window.visualizationLoopRunning) return;
+  window.visualizationLoopRunning = true;
+
+  // Создание новой ракеты
+  const rocketGeometry = new THREE.ConeGeometry(0.03, 0.1, 32);
   const rocketMaterial = new THREE.MeshPhongMaterial({
     color: 0xff6600,
     emissive: 0xff3300,
@@ -391,23 +514,16 @@ function startVisualizationLoop() {
     shininess: 20
   });
   const rocket = new THREE.Mesh(rocketGeometry, rocketMaterial);
+  rocket.name = "rocket";
   scene.add(rocket);
 
-  // Функция обновления визуализации
   function updateVisualization() {
-    // Получаем визуальное состояние из симулятора
+    if (!window.simulator || simulationEnded) return;
+
     const visualState = window.simulator.getVisualState();
+    rocket.position.copy(visualState.position);
 
-    console.log(visualState);
-
-    // Обновляем позицию ракеты
-    rocket.position.set(
-      visualState.position.x,
-      visualState.position.y,
-      visualState.position.z
-    );
-
-    // Обновляем ориентацию ракеты (направление тяги)
+    // Обновление ориентации
     const thrustDir = visualState.thrustDirection;
     rocket.lookAt(new THREE.Vector3(
       rocket.position.x + thrustDir.x,
@@ -415,25 +531,102 @@ function startVisualizationLoop() {
       rocket.position.z + thrustDir.z
     ));
 
-    // Делаем шаг симуляции
-    window.simulator.step(0.016); // ~60 FPS
+    // Обновление траектории
+    trajectoryPoints.push(rocket.position.clone());
+    trajectoryGeometry.setFromPoints(trajectoryPoints);
+
+    // Проверка прибытия
+    const hasArrived = checkAndVisualizeArrival(rocket.position, 1500);
+
+    if (!window.simulator.rocket().isOutOfFuel() && !hasArrived) {
+      // Выполняем несколько шагов физики перед рендерингом
+      accumulatedTime += RENDER_STEP;
+      while (accumulatedTime >= PHYSICS_TIME_STEP) {
+        window.simulator.step(PHYSICS_TIME_STEP);
+        accumulatedTime -= PHYSICS_TIME_STEP;
+      }
+    } else {
+      simulationEnded = true;
+      if (window.simulator.rocket().isOutOfFuel()) {
+        const fuelExhaustMarker = new THREE.Mesh(
+          new THREE.SphereGeometry(0.02, 16, 16),
+          new THREE.MeshBasicMaterial({ color: 0xffff00 })
+        );
+        fuelExhaustMarker.position.copy(rocket.position);
+        scene.add(fuelExhaustMarker);
+      }
+      console.log("Simulation ended - " +
+        (window.simulator.rocket().isOutOfFuel() ? "Fuel exhausted" : "Destination reached"));
+    }
   }
 
-  // Интеграция с Three.js анимацией
-  function animate(time) {
-    requestAnimationFrame(animate);
+  // Интеграция с основным циклом анимации
+  function visualizationAnimation(time) {
+    if (!simulationEnded) {
+      updateVisualization();
+    }
 
-    // Обновляем визуализацию
-    updateVisualization();
-
-    // Остальной код анимации (звезды, облака и т.д.)
-    clouds.rotation.y += 0.001;
-    starMaterial.uniforms.time.value = time / 1000;
-
-    renderer.render(scene, camera);
+    // Продолжаем анимацию только если симуляция активна
+    if (window.simulator && !simulationEnded) {
+      requestAnimationFrame(visualizationAnimation);
+    } else {
+      window.visualizationLoopRunning = false;
+    }
   }
 
-  animate();
+  visualizationAnimation();
 }
 
+function checkAndVisualizeArrival(rocketPos) {
+  if (!window.simulator || !targetPosition) return false;
+
+
+  let physicalPos = Module.rocket.position();
+  console.log(physicalPos.x, physicalPos.y, physicalPos.z);
+
+
+
+  if (hasArrived && !scene.getObjectByName("arrivalMarker")) {
+    // Визуализация прибытия
+    const marker = new THREE.Mesh(
+      new THREE.SphereGeometry(0.05, 16, 16),
+      new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.7 })
+    );
+    marker.position.copy(rocketPos);
+    marker.name = "arrivalMarker";
+    scene.add(marker);
+
+    // Получаем точное расстояние из симулятора
+    const distance = window.simulator.getCurrentDistance();
+    showDistanceInfo(rocketPos, distance);
+  }
+
+  return hasArrived;
+}
+
+function showDistanceInfo(position, distance) {
+  let textEl = document.getElementById('arrival-distance-text');
+  if (!textEl) {
+    textEl = document.createElement('div');
+    textEl.id = 'arrival-distance-text';
+    textEl.style.cssText = `
+      position: absolute; color: white; background: rgba(0,0,0,0.7);
+      padding: 5px 10px; border-radius: 5px; pointer-events: none;
+    `;
+    document.body.appendChild(textEl);
+  }
+
+  textEl.textContent = `Arrived! Distance: ${distance.toFixed(2)}m`;
+
+  const updatePosition = () => {
+    const vector = position.clone().project(camera);
+    textEl.style.left = `${(vector.x * 0.5 + 0.5) * window.innerWidth}px`;
+    textEl.style.top = `${(-(vector.y * 0.5) + 0.5) * window.innerHeight}px`;
+
+    if (document.body.contains(textEl)) {
+      requestAnimationFrame(updatePosition);
+    }
+  };
+  updatePosition();
+}
 animate();

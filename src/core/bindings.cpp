@@ -31,7 +31,7 @@ namespace
     {
         auto env = createEnvironment();
         auto optimizer = createOptimizer(destination);
-        optimizer->optimize(100);
+        optimizer->optimize(50);
 
         sim::utils::Logger::info("Starting optimization");
 
@@ -77,6 +77,14 @@ EMSCRIPTEN_BINDINGS(simulator)
         .function("dryMass", &sim::core::Rocket::dryMass)
         .function("isOutOfFuel", &sim::core::Rocket::isOutOfFuel);
 
+    value_object<sim::core::Rocket::RocketState>("RocketState")
+        .field("position", &sim::core::Rocket::RocketState::position)
+        .field("velocity", &sim::core::Rocket::RocketState::velocity)
+        .field("thrustDirection", &sim::core::Rocket::RocketState::thrustDirection)
+        .field("fuelMass", &sim::core::Rocket::RocketState::fuelMass)
+        .field("thrustLevel", &sim::core::Rocket::RocketState::thrustLevel)
+        .field("totalMass", &sim::core::Rocket::RocketState::totalMass);
+
     // Autopilot binding
     class_<sim::core::Autopilot>("Autopilot");
 
@@ -100,7 +108,25 @@ EMSCRIPTEN_BINDINGS(simulator)
         .function("physicsToVisual", &sim::core::Simulator::physicsToVisual)
         .function("visualToPhysics", &sim::core::Simulator::visualToPhysics)
         .function("getVisualState", &sim::core::Simulator::getVisualState)
-        .function("destination", &sim::core::Simulator::destination);
+        .function("destination", &sim::core::Simulator::destination)
+        .function("isArrived", &sim::core::Simulator::isArrived)
+        .function("isOutOfFuel", &sim::core::Rocket::isOutOfFuel)
+        .function("reset", &sim::core::Simulator::reset);
+
+    // Logger binding
+    enum_<sim::utils::LogLevel>("LogLevel")
+        .value("None", sim::utils::LogLevel::None)
+        .value("Debug", sim::utils::LogLevel::Debug)
+        .value("Info", sim::utils::LogLevel::Info)
+        .value("Warning", sim::utils::LogLevel::Warning)
+        .value("Error", sim::utils::LogLevel::Error);
+
+    class_<sim::utils::Logger>("Logger")
+        .class_function("setLevel", &sim::utils::Logger::setLevel)
+        .class_function("debug", &sim::utils::Logger::debug)
+        .class_function("info", &sim::utils::Logger::info)
+        .class_function("warning", &sim::utils::Logger::warning)
+        .class_function("error", &sim::utils::Logger::error);
 
     // Constants
     constant("PHYSICS_TO_VISUAL_SCALE", sim::utils::config::PHYSICS_TO_VISUAL_SCALE);

@@ -51,6 +51,7 @@ function renderReactComponent() {
       });
     };
 
+
     const inputStyle = {
       width: "100%",
       padding: "10px 12px",
@@ -284,6 +285,26 @@ function renderReactComponent() {
             e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2)";
           }
         }, "Launch Simulation"),
+
+        React.createElement("button", {
+          key: "reset-simulation",
+          onClick: () => {
+            if (window.resetSimulation) {
+              window.resetSimulation();
+              // Обновить состояние React, если нужно
+              setMenuVisible(true);
+            }
+          },
+          style: {
+            marginTop: "10px",
+            padding: "10px 16px",
+            backgroundColor: "#ff9800",
+            color: "#fff",
+            border: "none",
+            borderRadius: "8px",
+            cursor: "pointer"
+          }
+        }, "Reset Simulation"),
         React.createElement("button", {
           key: "toggle-axes",
           onClick: () => {
