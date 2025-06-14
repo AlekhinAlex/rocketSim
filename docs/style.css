@@ -103,3 +103,86 @@ p {
   background: rgba(0, 0, 0, 0.4);
   transition: opacity 1.5s ease-out;
 }
+/* Стили для лоадера */
+#optimization-loader {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+}
+
+#optimization-loader .card {
+  --bg-color: rgba(0, 0, 0, 0.8);
+  background-color: var(--bg-color);
+  padding: 2rem;
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+#optimization-loader .loader {
+  color: white;
+  font-family: "Courier New", Courier, monospace;
+  font-weight: 500;
+  font-size: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+#optimization-loader .words {
+  overflow: hidden;
+  position: relative;
+  height: 1.5rem;
+  width: 8rem;
+}
+
+#optimization-loader .words::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    var(--bg-color) 0%,
+    transparent 30%,
+    transparent 70%,
+    var(--bg-color) 100%
+  );
+  z-index: 2;
+}
+
+#optimization-loader .word {
+  display: block;
+  height: 100%;
+  text-align: center;
+  color: #4f6bed;
+  animation: word-scroll 4s infinite ease-in-out;
+}
+
+@keyframes word-scroll {
+  0%,
+  10% {
+    transform: translateY(0);
+  }
+  20%,
+  30% {
+    transform: translateY(-100%);
+  }
+  40%,
+  50% {
+    transform: translateY(-200%);
+  }
+  60%,
+  70% {
+    transform: translateY(-300%);
+  }
+  80%,
+  90% {
+    transform: translateY(-400%);
+  }
+  100% {
+    transform: translateY(-400%);
+  }
+}

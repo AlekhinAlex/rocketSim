@@ -1,177 +1,141 @@
-# Rocket Flight Simulator: A Physics-Based 3D Rocket Trajectory Simulation
+# Rocket Simulation Engine: A High-Performance C++ Rocket Flight Simulator with 3D Visualization
 
-A high-fidelity 3D rocket flight simulator that models realistic rocket dynamics including gravity turn maneuvers, atmospheric effects, and fuel consumption. The simulator provides precise calculations of rocket trajectories considering gravitational forces, aerodynamic drag, and autopilot-controlled thrust vectoring.
+A comprehensive rocket flight simulation engine that combines accurate physics modeling with real-time 3D visualization. The engine simulates rocket trajectories considering gravity, aerodynamics, and fuel consumption while providing an interactive web-based visualization interface.
 
-The simulator implements a comprehensive physics engine that accounts for:
-- Variable gravity based on altitude
-- Atmospheric density changes with altitude
-- Aerodynamic drag forces
-- Fuel consumption and mass changes
-- Three-phase flight control (vertical ascent, gravity turn, target approach)
-- Real-time trajectory optimization via autopilot
+The simulator implements a sophisticated physics engine that accounts for gravitational forces, atmospheric drag, and rocket propulsion dynamics. It features an optimization system that can determine optimal flight parameters for reaching specified destinations, and a gravity turn autopilot for automated flight control. The simulation results are visualized through an interactive 3D interface built with Three.js, allowing users to observe and analyze rocket trajectories in real-time.
+
+Key features include:
+- High-fidelity physics simulation including gravity, atmospheric effects, and fuel consumption
+- Automated flight control through gravity turn autopilot
+- Parameter optimization for optimal trajectory planning
+- Real-time 3D visualization with interactive controls
+- WebAssembly integration for high-performance browser-based execution
+- Comprehensive logging and state monitoring system
 
 ## Repository Structure
 ```
-rocket_sim/
-├── CMakeLists.txt          # CMake build configuration (C++17)
-├── include/                 # Header files
-│   ├── core/               # Core simulation components
-│   │   ├── autopilot.hpp   # Flight control system
-│   │   ├── environment.hpp # Environmental conditions
-│   │   ├── rocket.hpp      # Rocket physics model
-│   │   ├── simulator.hpp   # Main simulation engine
-│   │   └── vector3.hpp     # 3D vector operations
-│   ├── physics/            # Physics calculations
-│   │   ├── aerodynamics.hpp # Drag force computations
-│   │   └── gravity.hpp     # Gravitational force models
-│   └── utils/              # Utility functions
-│       ├── config.hpp      # Simulation constants
-│       └── logger.hpp      # Logging system
-├── main.cpp                # Application entry point
-└── src/                    # Implementation files
-    ├── core/               # Core implementation
-    ├── physics/            # Physics implementation
-    └── utils/              # Utilities implementation
+.
+├── CMakeLists.txt              # CMake configuration file with C++17 and WASM support
+├── docs/                       # Web interface and visualization components
+│   ├── js/                    # JavaScript files for 3D visualization and UI
+│   └── wasm/                  # WebAssembly build output
+├── include/                   # Header files organized by functionality
+│   ├── core/                 # Core simulation components (rocket, autopilot, etc.)
+│   ├── physics/             # Physics calculations (aerodynamics, gravity)
+│   └── utils/              # Utility functions and configurations
+├── src/                    # Implementation files
+│   ├── core/              # Core simulation logic implementation
+│   ├── physics/          # Physics calculations implementation
+│   └── utils/           # Utility functions implementation
+└── main.cpp             # Main entry point demonstrating simulation usage
 ```
 
 ## Usage Instructions
 ### Prerequisites
 - C++17 compatible compiler
-- CMake 3.10 or higher
-- Termcolor library
-- (Optional) Google Test for running tests
+- CMake 3.15 or higher
+- For web visualization:
+  - Node.js v16.0.0 or higher
+  - Modern web browser with WebAssembly support
 
 ### Installation
 
-#### MacOS
-```bash
-# Install build tools
-xcode-select --install
-brew install cmake
-brew install termcolor
+#### Building from Source
 
-# Clone and build
+1. Clone the repository:
+```bash
 git clone <repository-url>
-cd rocket_sim
-mkdir build && cd build
-cmake ..
-make
+cd rocket-sim
 ```
 
-#### Linux
+2. Create and enter build directory:
 ```bash
-# Install build tools
-sudo apt-get update
-sudo apt-get install build-essential cmake
-sudo apt-get install libtermcolor-dev
-
-# Clone and build
-git clone <repository-url>
-cd rocket_sim
 mkdir build && cd build
-cmake ..
-make
 ```
 
-#### Windows
+3. Configure with CMake:
 ```bash
-# Install Visual Studio with C++ development tools
-# Install CMake from https://cmake.org/download/
-
-# Clone and build
-git clone <repository-url>
-cd rocket_sim
-mkdir build && cd build
 cmake ..
+```
+
+4. Build the project:
+```bash
 cmake --build .
 ```
 
-### Quick Start
-1. Create a rocket configuration:
-```cpp
-auto rocket = std::make_shared<Rocket>(
-    5000.0,  // Dry mass (kg)
-    50000.0, // Fuel mass (kg)
-    200.0,   // Fuel burn rate (kg/s)
-    300.0,   // Specific impulse (s)
-    10.0,    // Cross-section area (m²)
-    0.2      // Drag coefficient
-);
+For WebAssembly build:
+```bash
+emcmake cmake ..
+emmake make
 ```
 
-2. Set up the simulation:
-```cpp
-auto env = std::make_shared<Environment>();
-auto autopilot = std::make_shared<GravityTurnAutopilot>(
-    30000.0,  // Target altitude (m)
-    Vector3(10000, 30000.0 + EARTH_RADIUS, 5000),  // Destination
-    env,
-    5000.0,   // Gravity turn start altitude
-    0.5,      // Turn rate
-    6.0       // Max angular velocity
-);
+### Quick Start
 
-Simulator sim(rocket, env, destination, autopilot);
-sim.run(TIME_STEP);
+1. Run the basic simulation:
+```cpp
+#include "include/core/simulator.hpp"
+#include "include/core/rocket.hpp"
+
+int main() {
+    auto env = std::make_shared<Environment>();
+    auto rocket = std::make_shared<Rocket>(20000.0, 500000.0, 500.0, 400.0, 10.0, 0.2);
+    Vector3 destination(40000, 100000.0 + EARTH_RADIUS, 90000);
+    
+    Simulator sim(rocket, env, destination);
+    sim.run();
+    return 0;
+}
 ```
 
 ### More Detailed Examples
-```cpp
-// Configure custom flight parameters
-auto customRocket = std::make_shared<Rocket>(
-    3000.0,  // Lighter dry mass
-    40000.0, // Less fuel
-    150.0,   // Lower burn rate
-    320.0,   // Higher specific impulse
-    8.0,     // Smaller cross-section
-    0.15     // Better aerodynamics
-);
 
-// Set up orbital insertion trajectory
-Vector3 orbitDestination(0, 100000.0 + EARTH_RADIUS, 0);
-auto customAutopilot = std::make_shared<GravityTurnAutopilot>(
-    100000.0,  // Higher target altitude
-    orbitDestination,
-    env,
-    10000.0,   // Later gravity turn
-    0.3,       // Slower turn rate
-    4.0        // Lower max angular velocity
-);
+1. Optimizing rocket parameters:
+```cpp
+auto env = std::make_shared<Environment>();
+Vector3 destination(40000, 100000.0 + EARTH_RADIUS, 90000);
+
+Optimizer optimizer(env, destination);
+optimizer.optimize(100);  // Run 100 optimization iterations
+
+auto bestRocket = optimizer.getBestRocket();
+auto bestAutopilot = optimizer.getBestAutopilot();
 ```
 
 ### Troubleshooting
-Common issues and solutions:
 
-1. Simulation crashes with "Simulator not properly initialized":
-   - Ensure all components (Rocket, Environment, Autopilot) are properly instantiated
-   - Check for null shared pointers
-   - Verify constructor parameters are within valid ranges
+Common issues:
 
-2. Rocket fails to reach target:
-   - Check fuel mass and burn rate calculations
-   - Verify thrust-to-weight ratio is sufficient
-   - Examine autopilot parameters for suboptimal trajectory
+1. Simulation not converging:
+   - Check if destination is within achievable range
+   - Verify fuel mass and burn rate parameters
+   - Enable debug logging:
+   ```cpp
+   Logger::setLevel(LogLevel::Debug);
+   ```
 
-3. Performance issues:
-   - Adjust TIME_STEP in config.hpp (default: 0.1s)
-   - Monitor memory usage with large simulation durations
-   - Enable debug logging for detailed trajectory analysis
+2. WebAssembly build fails:
+   - Ensure Emscripten is properly installed and activated
+   - Check WASM build flags in CMakeLists.txt
+   - Verify all dependencies are WASM-compatible
 
 ## Data Flow
-The simulator processes physics calculations and trajectory updates in a sequential pipeline, transforming rocket state through environmental interactions and control inputs.
+The simulation processes rocket flight dynamics through a chain of physics calculations and control systems.
 
 ```ascii
-[Initial State] -> [Environment] -> [Physics Engine] -> [Autopilot] -> [State Update]
-     |               (gravity)        (forces)          (control)        (position)
-     |              (atmosphere)      (dynamics)        (thrust)         (velocity)
-     └------------------[Feedback Loop]-----------------------------------┘
+[Environment] --> [Physics Engine] --> [Rocket State]
+       ^               |                    |
+       |               v                    v
+[Autopilot] <---- [Simulator] <---- [Optimization]
+       |               |                    |
+       v               v                    v
+[Flight Control] -> [Trajectory] -> [Visualization]
 ```
 
 Key component interactions:
-1. Environment calculates gravity and atmospheric density based on altitude
-2. Physics engine computes total forces (gravity, drag, thrust)
-3. Autopilot determines optimal thrust direction and magnitude
-4. Simulator updates rocket state (position, velocity, fuel mass)
-5. Logger provides real-time telemetry and state information
-6. Vector3 class handles all 3D mathematical operations
-7. Configuration constants ensure consistent physical parameters
+1. Environment provides atmospheric and gravitational parameters
+2. Physics Engine calculates forces (gravity, drag, thrust)
+3. Rocket State updates position, velocity, and fuel consumption
+4. Autopilot determines optimal control inputs
+5. Simulator coordinates all components and advances time
+6. Optimization tunes parameters for efficient flight
+7. Visualization renders the simulation state in 3D

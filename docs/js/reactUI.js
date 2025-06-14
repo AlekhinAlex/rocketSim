@@ -19,6 +19,7 @@ function renderReactComponent() {
       turnRate: 0.5
     });
 
+    const [optimizationStatus, setOptimizationStatus] = React.useState(null);
     const [menuVisible, setMenuVisible] = React.useState(true);
     const [autoSettings, setAutoSettings] = React.useState(false);
     const [showAxes, setShowAxes] = React.useState(false);
@@ -254,14 +255,14 @@ function renderReactComponent() {
           onClick: async () => {
             if (!window.simulationInitialized) {
               console.log("Initializing simulation...");
+              setOptimizationStatus("Initializing...");
               const success = await window.initSimulation();
               if (!success) {
                 alert("Failed to initialize simulation. Please try again.");
+                setOptimizationStatus(null);
                 return;
               }
             }
-            console.log("Simulation started");
-
           },
           style: {
             marginTop: "20px",

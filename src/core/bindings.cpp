@@ -27,25 +27,37 @@ namespace
         return std::make_shared<sim::core::Optimizer>(env, destination);
     }
 
-    std::shared_ptr<sim::core::Simulator> createSimulator(sim::core::Vector3 destination)
+    std::shared_ptr<sim::core::GravityTurnAutopilot> createGravityTurnAutopilot(
+        double turnStartAltitude,
+        const sim::core::Vector3 &destination,
+        std::shared_ptr<sim::core::Environment> env,
+        double turnRate,
+        double param1,
+        double param2)
     {
-        auto env = createEnvironment();
-        auto optimizer = createOptimizer(destination);
-        optimizer->optimize(50);
+        return std::make_shared<sim::core::GravityTurnAutopilot>(
+            turnStartAltitude, destination, env, turnRate, param1, param2);
+    }
 
-        sim::utils::Logger::info("Starting optimization");
+    std::shared_ptr<sim::core::Simulator> createSimulator(
+        const sim::core::Vector3 &destination,
+        const std::shared_ptr<sim::core::Rocket> &rocket,
+        const std::shared_ptr<sim::core::Environment> &env,
+        const std::shared_ptr<sim::core::Autopilot> &autopilot)
+    {
+        return std::make_shared<sim::core::Simulator>(rocket, env, destination, autopilot);
+    }
 
-        auto bestRocket = optimizer->getBestRocket();
-        auto bestAutopilot = optimizer->getBestAutopilot();
-
-        sim::utils::Logger::info("Success");
-
-        if (!bestRocket || !bestAutopilot)
-        {
-            throw std::runtime_error(" Returned null rocket or autopilot");
-        }
-
-        return std::make_shared<sim::core::Simulator>(bestRocket, env, destination, bestAutopilot);
+    std::shared_ptr<sim::core::Rocket> createRocket(
+        double dryMass,
+        double fuelMass,
+        double burnRate,
+        double specificImpulse,
+        double param1,
+        double param2)
+    {
+        return std::make_shared<sim::core::Rocket>(
+            dryMass, fuelMass, burnRate, specificImpulse, param1, param2);
     }
 }
 
@@ -70,11 +82,18 @@ EMSCRIPTEN_BINDINGS(simulator)
 
     // Rocket binding
     class_<sim::core::Rocket>("Rocket")
+        .smart_ptr<std::shared_ptr<sim::core::Rocket>>("shared_ptr<Rocket>")
+        .constructor<double, double, double, double, double, double>()
         .function("position", &sim::core::Rocket::position)
         .function("velocity", &sim::core::Rocket::velocity)
         .function("thrust", &sim::core::Rocket::thrust)
         .function("totalMass", &sim::core::Rocket::totalMass)
+        .function("fuelMass", &sim::core::Rocket::fuelMass)
+        .function("burnRate", &sim::core::Rocket::burnRate)
+        .function("specificImpulse", &sim::core::Rocket::specificImpulse)
         .function("dryMass", &sim::core::Rocket::dryMass)
+        .function("getCrossSectionArea", &sim::core::Rocket::getCrossSectionArea)
+        .function("getDragCoefficient", &sim::core::Rocket::getDragCoefficient)
         .function("isOutOfFuel", &sim::core::Rocket::isOutOfFuel);
 
     value_object<sim::core::Rocket::RocketState>("RocketState")
@@ -86,10 +105,17 @@ EMSCRIPTEN_BINDINGS(simulator)
         .field("totalMass", &sim::core::Rocket::RocketState::totalMass);
 
     // Autopilot binding
-    class_<sim::core::Autopilot>("Autopilot");
+    class_<sim::core::Autopilot>("Autopilot")
+        .smart_ptr<std::shared_ptr<sim::core::Autopilot>>("shared_ptr<Autopilot>");
 
     // GravityTurnAutopilot binding
-    class_<sim::core::GravityTurnAutopilot, base<sim::core::Autopilot>>("GravityTurnAutopilot");
+    class_<sim::core::GravityTurnAutopilot, base<sim::core::Autopilot>>("GravityTurnAutopilot")
+        .smart_ptr<std::shared_ptr<sim::core::GravityTurnAutopilot>>("shared_ptr<GravityTurnAutopilot>")
+        .constructor<double, const sim::core::Vector3 &, std::shared_ptr<sim::core::Environment>, double, double, double>()
+        .function("targetAltitude", &sim::core::GravityTurnAutopilot::targetAltitude)
+        .function("maxAngularVelocity", &sim::core::GravityTurnAutopilot::maxAngularVelocity)
+        .function("turnStartAltitude", &sim::core::GravityTurnAutopilot::turnStartAltitude)
+        .function("turnRate", &sim::core::GravityTurnAutopilot::turnRate);
 
     // Optimizer binding
     class_<sim::core::Optimizer>("Optimizer")
@@ -101,6 +127,7 @@ EMSCRIPTEN_BINDINGS(simulator)
 
     // Simulator binding
     class_<sim::core::Simulator>("Simulator")
+        .constructor<std::shared_ptr<sim::core::Rocket>, std::shared_ptr<sim::core::Environment>, sim::core::Vector3, std::shared_ptr<sim::core::Autopilot>>()
         .smart_ptr<std::shared_ptr<sim::core::Simulator>>("shared_ptr<Simulator>")
         .function("step", &sim::core::Simulator::step)
         .function("run", &sim::core::Simulator::run)
@@ -138,5 +165,7 @@ EMSCRIPTEN_BINDINGS(simulator)
     function("createEnvironment", &createEnvironment);
     function("createOptimizer", &createOptimizer);
     function("createSimulator", &createSimulator);
+    function("createGravityTurnAutopilot", &createGravityTurnAutopilot);
+    function("createRocket", &createRocket);
 }
 #endif // USE_EMSCRIPTEN

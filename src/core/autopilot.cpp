@@ -15,7 +15,7 @@ namespace sim::core
                                                double turnStartAltitude,
                                                double turnRate,
                                                double maxAngularVelocity)
-        : targetAltitude_(targetAltitude * 3), //! Удвоенная целевая высота
+        : targetAltitude_(targetAltitude), //! Удвоенная целевая высота
           destination_(destination),
           environment_(environment),
           turnStartAltitude_(turnStartAltitude),

@@ -28,7 +28,7 @@ namespace sim::core
     public:
         Optimizer(std::shared_ptr<Environment> env, const Vector3 &destination);
 
-        void optimize(int iterations);
+        void optimize(const int iterations);
 
         std::shared_ptr<Rocket> getBestRocket() const;
         std::shared_ptr<GravityTurnAutopilot> getBestAutopilot() const;

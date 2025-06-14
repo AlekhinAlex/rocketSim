@@ -1,12 +1,35 @@
-// Selectign a target
 let selectingTarget = false;
 let simulationEnded = false;
 let targetMarker = null;
 let targetPosition = null;
 
+function showOptimizationLoader() {
+  const loader = document.getElementById('optimization-loader');
+  if (loader) {
+    const words = loader.querySelector('.words');
+    if (words) {
+      const wordElements = words.querySelectorAll('.word');
+      wordElements.forEach(word => {
+        word.style.animation = 'none';
+        void word.offsetWidth;
+        word.style.animation = 'word-scroll 4s infinite ease-in-out';
+      });
+    }
+    loader.style.display = 'block';
+  }
+}
+
+function hideOptimizationLoader() {
+  const loader = document.getElementById('optimization-loader');
+  if (loader) loader.style.display = 'none';
+}
+
+const OptimizerWorker = new Worker(new URL('./optimizer.worker.js', import.meta.url), {
+  type: 'module'
+});
 
 const PHYSICS_TIME_STEP = 0.01; // Фиксированный шаг физики (как в C++)
-const RENDER_STEP = 3; // Шаг визуализации (можно увеличить)
+const RENDER_STEP = 1; // Шаг визуализации (можно увеличить)
 let accumulatedTime = 0;
 
 const container = document.getElementById("scene-container");
@@ -401,24 +424,67 @@ async function initSimulation() {
   }
 
   try {
-    //Module.Logger.setLevel(Module.LogLevel.None);
-    // Create environment and destination vector
-    const env = new Module.Environment();
-    // const destination = targetPosition
-    //   ? new Module.Vector3(targetPosition.x * Module.VISUAL_TO_PHYSICS_SCALE,
-    //     targetPosition.y * Module.VISUAL_TO_PHYSICS_SCALE,
-    //     targetPosition.z * Module.VISUAL_TO_PHYSICS_SCALE)
-    //   : new Module.Vector3(0, 0, 0);
+    showOptimizationLoader();
+
+    OptimizerWorker.postMessage({ type: 'init' });
+
+    OptimizerWorker.onmessage = (e) => {
+      switch (e.data.type) {
+        case 'initialized':
+          console.log("Optimizer worker initialized");
+          const fixedDestination = new THREE.Vector3(
+            -140000,
+            130000 + Module.EARTH_RADIUS,
+            40000
+          );
+          OptimizerWorker.postMessage({
+            type: 'optimize',
+            destination: fixedDestination,
+            iterations: 50
+          });
+          break;
+
+        case 'optimization_complete':
+          console.log("Optimization complete", e.data);
+          hideOptimizationLoader();
+          createSimulatorWithOptimizedParams(e.data);
+          break;
+
+        case 'error':
+          console.error("Optimizer error:", e.data.error);
+          hideOptimizationLoader();
+          break;
+      }
+    };
+
+    return true;
+  } catch (error) {
+    console.error("Simulation initialization failed:", error);
+    hideOptimizationLoader(); // Скрываем лоадер при ошибке
+    return false;
+  }
+}
+
+function createSimulatorWithOptimizedParams(params) {
+  try {
+
+    const env = Module.createEnvironment();
+
+    const destination = new Module.Vector3(
+      -140000,
+      130000 + Module.EARTH_RADIUS,
+      40000
+    );
 
 
     //!===============
     const visualDestination = new THREE.Vector3(
-      -200000 * Module.PHYSICS_TO_VISUAL_SCALE,
-      130000.0 * Module.PHYSICS_TO_VISUAL_SCALE + earthRadius, // Небольшое смещение от поверхности
-      90000 * Module.PHYSICS_TO_VISUAL_SCALE
+      -140000 * Module.PHYSICS_TO_VISUAL_SCALE,
+      130000.0 * Module.PHYSICS_TO_VISUAL_SCALE + earthRadius,
+      40000 * Module.PHYSICS_TO_VISUAL_SCALE
     );
 
-    const markerGeometry = new THREE.SphereGeometry(0.05, 32, 32); // Уменьшил размер для лучшего вида
+    const markerGeometry = new THREE.SphereGeometry(0.05, 32, 32);
     const markerMaterial = new THREE.MeshBasicMaterial({
       color: 0xff0000,
       transparent: true,
@@ -429,34 +495,55 @@ async function initSimulation() {
     scene.add(destinationMarker);
     //!===============
 
-
-    const destination = new Module.Vector3(
-      -200000,
-      earthRadius * Module.VISUAL_TO_PHYSICS_SCALE + 130000.0,
-      90000
-
+    const rocket = Module.createRocket(
+      params.rocketParams.dryMass,
+      params.rocketParams.fuelMass,
+      params.rocketParams.burnRate,
+      params.rocketParams.specificImpulse,
+      params.rocketParams.crossSectionArea,
+      params.rocketParams.dragCoefficient
     );
 
-    console.log(destination.x, destination.y, destination.z);
+    const autopilot = Module.createGravityTurnAutopilot(
+      params.autopilotParams.targetAltitude,
+      destination,
+      env,
+      params.autopilotParams.turnStartAltitude,
+      params.autopilotParams.turnRate,
+      params.autopilotParams.maxAngularVelocity
+    );
 
-    //! Worked!
-    //TODO: need more accurate coordinates analizer in logic?
+    console.log("Optimized params:", params);
+    console.log("Creating rocket with:",
+      params.rocketParams.dryMass,
+      params.rocketParams.fuelMass,
+      params.rocketParams.burnRate,
+      params.rocketParams.specificImpulse,
+      params.rocketParams.crossSectionArea,
+      params.rocketParams.dragCoefficient
+    );
+    console.log("Creating autopilot with:",
+      params.autopilotParams.targetAltitude,
+      params.autopilotParams.turnStartAltitude,
+      params.autopilotParams.turnRate,
+      params.autopilotParams.maxAngularVelocity
+    );
 
 
-    const simulator = Module.createSimulator(destination);
+    const simulator = Module.createSimulator(destination, rocket, env, autopilot);
+
+    console.log(simulator);
     window.simulator = simulator;
 
     window.simulationInitialized = true;
     startVisualizationLoop();
-    return true;
   } catch (error) {
-    console.error("Simulation initialization failed:", error);
-    return false;
+    console.error("Failed to create simulator with optimized params:", error);
   }
 }
 
 window.resetSimulation = function () {
-  // Сброс всех флагов состояния
+
   simulationEnded = false;
   window.simulationInitialized = false;
 
@@ -501,11 +588,9 @@ window.resetSimulation = function () {
 
 function startVisualizationLoop() {
 
-  // Убедимся, что предыдущая симуляция очищена
   if (window.visualizationLoopRunning) return;
   window.visualizationLoopRunning = true;
 
-  // Создание новой ракеты
   const rocketGeometry = new THREE.ConeGeometry(0.03, 0.1, 32);
   const rocketMaterial = new THREE.MeshPhongMaterial({
     color: 0xff6600,
@@ -523,7 +608,6 @@ function startVisualizationLoop() {
     const visualState = window.simulator.getVisualState();
     rocket.position.copy(visualState.position);
 
-    // Обновление ориентации
     const thrustDir = visualState.thrustDirection;
     rocket.lookAt(new THREE.Vector3(
       rocket.position.x + thrustDir.x,
@@ -531,15 +615,12 @@ function startVisualizationLoop() {
       rocket.position.z + thrustDir.z
     ));
 
-    // Обновление траектории
     trajectoryPoints.push(rocket.position.clone());
     trajectoryGeometry.setFromPoints(trajectoryPoints);
 
-    // Проверка прибытия
     const hasArrived = checkAndVisualizeArrival(rocket.position, 1500);
 
     if (!window.simulator.rocket().isOutOfFuel() && !hasArrived) {
-      // Выполняем несколько шагов физики перед рендерингом
       accumulatedTime += RENDER_STEP;
       while (accumulatedTime >= PHYSICS_TIME_STEP) {
         window.simulator.step(PHYSICS_TIME_STEP);
@@ -578,16 +659,11 @@ function startVisualizationLoop() {
 }
 
 function checkAndVisualizeArrival(rocketPos) {
-  if (!window.simulator || !targetPosition) return false;
+  if (!window.simulator) return false;
 
-
-  let physicalPos = Module.rocket.position();
-  console.log(physicalPos.x, physicalPos.y, physicalPos.z);
-
-
+  const hasArrived = window.simulator.isArrived(1500);
 
   if (hasArrived && !scene.getObjectByName("arrivalMarker")) {
-    // Визуализация прибытия
     const marker = new THREE.Mesh(
       new THREE.SphereGeometry(0.05, 16, 16),
       new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.7 })
@@ -596,7 +672,6 @@ function checkAndVisualizeArrival(rocketPos) {
     marker.name = "arrivalMarker";
     scene.add(marker);
 
-    // Получаем точное расстояние из симулятора
     const distance = window.simulator.getCurrentDistance();
     showDistanceInfo(rocketPos, distance);
   }
