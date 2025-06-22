@@ -63,9 +63,20 @@ namespace sim::core
         return fuelMass_ <= 0;
     }
 
-    void Rocket::setThrust(const Vector3 &direction)
+    void Rocket::setThrust(const Vector3 &desiredDirection, double maxAnglePerStep)
     {
-        Vector3 newDirection = thrustDirection_ + (direction.normalized() - thrustDirection_) * 0.2;
+        Vector3 current = thrustDirection_;
+        Vector3 desired = desiredDirection.normalized();
+        double angle = Vector3::angle(current, desired);
+
+        if (angle < 1e-5)
+        {
+            thrustDirection_ = desired;
+            return;
+        }
+
+        double t = std::min(1.0, maxAnglePerStep / angle);
+        Vector3 newDirection = current + (desired - current) * t;
         thrustDirection_ = newDirection.normalized();
     }
 

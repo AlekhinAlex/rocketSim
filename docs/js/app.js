@@ -1,7 +1,7 @@
-let selectingTarget = false;
 let simulationEnded = false;
 let targetMarker = null;
 let targetPosition = null;
+let statusWindow = null;
 
 function showOptimizationLoader() {
   const loader = document.getElementById('optimization-loader');
@@ -24,12 +24,18 @@ function hideOptimizationLoader() {
   if (loader) loader.style.display = 'none';
 }
 
+window.setStatusWindowVisibility = (visible) => {
+  if (!statusWindow) {
+    statusWindow = createStatusWindow();
+  }
+  statusWindow.style.display = visible ? 'block' : 'none';
+};
 const OptimizerWorker = new Worker(new URL('./optimizer.worker.js', import.meta.url), {
   type: 'module'
 });
 
-const PHYSICS_TIME_STEP = 0.01; // Фиксированный шаг физики (как в C++)
-const RENDER_STEP = 1; // Шаг визуализации (можно увеличить)
+const PHYSICS_TIME_STEP = 0.01;
+const RENDER_STEP = .5;
 let accumulatedTime = 0;
 
 const container = document.getElementById("scene-container");
@@ -72,7 +78,7 @@ window.addEventListener("resize", () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Stars background
+// Stars
 const starCount = 6000;
 const starGeometry = new THREE.BufferGeometry();
 const starVertices = [];
@@ -94,7 +100,6 @@ starGeometry.setAttribute(
   new THREE.Float32BufferAttribute(starSizes, 1)
 );
 
-// Custom shader for stars
 const starMaterial = new THREE.ShaderMaterial({
   uniforms: {
     color: { value: new THREE.Color(0xffffff) },
@@ -130,7 +135,6 @@ const starMaterial = new THREE.ShaderMaterial({
 const stars = new THREE.Points(starGeometry, starMaterial);
 scene.add(stars);
 
-// Earth setup
 const earthRadius = 7;
 const earthGeometry = new THREE.SphereGeometry(earthRadius, 64, 64);
 
@@ -157,7 +161,6 @@ const earthMaterial = new THREE.MeshPhongMaterial({
 const earth = new THREE.Mesh(earthGeometry, earthMaterial);
 scene.add(earth);
 
-// Clouds
 const cloudTexture = loader.load(
   "https://threejs.org/examples/textures/planets/earth_clouds_1024.png"
 );
@@ -174,7 +177,6 @@ const clouds = new THREE.Mesh(
 );
 scene.add(clouds);
 
-// Lighting
 const ambientLight = new THREE.AmbientLight(0x333333);
 scene.add(ambientLight);
 
@@ -182,7 +184,6 @@ const directionalLight = new THREE.DirectionalLight(0xffffff, 1.6);
 directionalLight.position.set(5, 3, 5);
 scene.add(directionalLight);
 
-// Rocket
 const rocketGeometry = new THREE.ConeGeometry(0, 0.2, 32);
 const rocketMaterial = new THREE.MeshPhongMaterial({
   color: 0xff6600,
@@ -193,40 +194,34 @@ const rocketMaterial = new THREE.MeshPhongMaterial({
 const rocket = new THREE.Mesh(rocketGeometry, rocketMaterial);
 
 const rocketDistance = earthRadius + 0.05;
-rocket.position.set(0, rocketDistance, 0);
+rocket.position.set(rocketDistance, 0, 0);
 rocket.rotation.z = -Math.PI / 2;
 scene.add(rocket);
 
-// Rocket light
 const rocketGlow = new THREE.PointLight(0xff6600, 1, 50, 4);
 rocketGlow.position.set(0, -0.35, 0);
 rocket.add(rocketGlow);
 
 let flamePulse = 0;
 
-// Camera start
 camera.position.set(-15, 8, 15);
 camera.lookAt(earth.position);
 
-// Controls
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.target.copy(earth.position);
+controls.target.copy(earth.position.clone().add(new THREE.Vector3(0, 7, 0)));
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 controls.screenSpacePanning = false;
-controls.minDistance = earthRadius + 1;
-controls.maxDistance = earthRadius * 150;
+controls.minDistance = earthRadius * 0.3;
+controls.maxDistance = earthRadius * 100;
 controls.enablePan = false;
 controls.enabled = false;
 
-// Animation
 let animationStartTime = null;
 const animationDuration = 3000;
 const startCameraPosition = camera.position.clone();
 const endCameraPosition = new THREE.Vector3(
-  rocketDistance * 2,
-  rocketDistance * 0.7,
-  rocketDistance * 1.2
+  9, 15, 4
 );
 
 document.getElementById("view-rocket-button").addEventListener("click", () => {
@@ -239,12 +234,10 @@ document.getElementById("view-rocket-button").addEventListener("click", () => {
   }, 1500);
 });
 
-// Easing function
 function easeInOutQuad(t) {
   return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 }
 
-// Animate loop
 function animate(time = 0) {
   requestAnimationFrame(animate);
 
@@ -298,11 +291,9 @@ renderer.domElement.addEventListener("click", (event) => {
     function checkAndVisualizeArrival(rocketPos) {
       if (!window.simulator || !targetPosition) return false;
 
-      // Используем встроенную проверку симулятора
       const hasArrived = window.simulator.isArrived(1500);
 
       if (hasArrived && !scene.getObjectByName("arrivalMarker")) {
-        // Визуализация прибытия
         const marker = new THREE.Mesh(
           new THREE.SphereGeometry(0.05, 16, 16),
           new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.7 })
@@ -311,7 +302,6 @@ renderer.domElement.addEventListener("click", (event) => {
         marker.name = "arrivalMarker";
         scene.add(marker);
 
-        // Получаем точное расстояние из симулятора
         const distance = window.simulator.getCurrentDistance();
         showDistanceInfo(rocketPos, distance);
       }
@@ -351,18 +341,25 @@ renderer.domElement.addEventListener("click", (event) => {
   const rect = renderer.domElement.getBoundingClientRect();
   mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
   mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-  console.log(`Mouse coordinates: x=${mouse.x}, y=${mouse.y}`);
 
   raycaster.setFromCamera(mouse, camera);
 
-  const distance = 5;
+  const distance = 1;
   const direction = new THREE.Vector3();
   camera.getWorldDirection(direction);
   const targetPoint = new THREE.Vector3();
   raycaster.ray.at(distance, targetPoint);
 
   targetPosition = targetPoint;
+
   console.log("Target selected in space at:", targetPosition);
+  const phPos = new THREE.Vector3(
+    targetPosition.x * Module.VISUAL_TO_PHYSICS_SCALE,
+    targetPosition.y * Module.VISUAL_TO_PHYSICS_SCALE,
+    targetPosition.z * Module.VISUAL_TO_PHYSICS_SCALE,
+  );
+
+  console.log("Physics target coords: ", phPos);
 
   if (targetMarker) {
     scene.remove(targetMarker);
@@ -414,9 +411,6 @@ async function initializeWASM() {
 
 initializeWASM();
 
-
-
-
 async function initSimulation() {
   if (!window.ModuleReady) {
     console.error("WASM module not ready yet");
@@ -433,14 +427,16 @@ async function initSimulation() {
         case 'initialized':
           console.log("Optimizer worker initialized");
           const fixedDestination = new THREE.Vector3(
-            -140000,
-            130000 + Module.EARTH_RADIUS,
-            40000
+            targetPosition.x * Module.VISUAL_TO_PHYSICS_SCALE,
+            (targetPosition.y - earthRadius) * Module.VISUAL_TO_PHYSICS_SCALE + Module.EARTH_RADIUS,
+            targetPosition.z * Module.VISUAL_TO_PHYSICS_SCALE,
           );
+
+          console.log(fixedDestination);
           OptimizerWorker.postMessage({
             type: 'optimize',
             destination: fixedDestination,
-            iterations: 50
+            iterations: 40
           });
           break;
 
@@ -460,30 +456,27 @@ async function initSimulation() {
     return true;
   } catch (error) {
     console.error("Simulation initialization failed:", error);
-    hideOptimizationLoader(); // Скрываем лоадер при ошибке
+    hideOptimizationLoader();
     return false;
   }
 }
 
 function createSimulatorWithOptimizedParams(params) {
+  let env = null;
+  let destination = null;
+  let rocket = null;
+  let autopilot = null;
+  let simulator = null;
+
   try {
-
-    const env = Module.createEnvironment();
-
-    const destination = new Module.Vector3(
-      -140000,
-      130000 + Module.EARTH_RADIUS,
-      40000
+    env = Module.createEnvironment();
+    destination = new Module.Vector3(
+      targetPosition.x * Module.VISUAL_TO_PHYSICS_SCALE,
+      (targetPosition.y - earthRadius) * Module.VISUAL_TO_PHYSICS_SCALE + Module.EARTH_RADIUS,
+      targetPosition.z * Module.VISUAL_TO_PHYSICS_SCALE,
     );
 
-
-    //!===============
-    const visualDestination = new THREE.Vector3(
-      -140000 * Module.PHYSICS_TO_VISUAL_SCALE,
-      130000.0 * Module.PHYSICS_TO_VISUAL_SCALE + earthRadius,
-      40000 * Module.PHYSICS_TO_VISUAL_SCALE
-    );
-
+    const visualDestination = targetPosition;
     const markerGeometry = new THREE.SphereGeometry(0.05, 32, 32);
     const markerMaterial = new THREE.MeshBasicMaterial({
       color: 0xff0000,
@@ -491,11 +484,11 @@ function createSimulatorWithOptimizedParams(params) {
       opacity: 0.8
     });
     const destinationMarker = new THREE.Mesh(markerGeometry, markerMaterial);
+    destinationMarker.name = "destinationMarker";
     destinationMarker.position.copy(visualDestination);
     scene.add(destinationMarker);
-    //!===============
 
-    const rocket = Module.createRocket(
+    rocket = Module.createRocket(
       params.rocketParams.dryMass,
       params.rocketParams.fuelMass,
       params.rocketParams.burnRate,
@@ -504,7 +497,7 @@ function createSimulatorWithOptimizedParams(params) {
       params.rocketParams.dragCoefficient
     );
 
-    const autopilot = Module.createGravityTurnAutopilot(
+    autopilot = Module.createGravityTurnAutopilot(
       params.autopilotParams.targetAltitude,
       destination,
       env,
@@ -513,78 +506,83 @@ function createSimulatorWithOptimizedParams(params) {
       params.autopilotParams.maxAngularVelocity
     );
 
-    console.log("Optimized params:", params);
-    console.log("Creating rocket with:",
-      params.rocketParams.dryMass,
-      params.rocketParams.fuelMass,
-      params.rocketParams.burnRate,
-      params.rocketParams.specificImpulse,
-      params.rocketParams.crossSectionArea,
-      params.rocketParams.dragCoefficient
-    );
-    console.log("Creating autopilot with:",
-      params.autopilotParams.targetAltitude,
-      params.autopilotParams.turnStartAltitude,
-      params.autopilotParams.turnRate,
-      params.autopilotParams.maxAngularVelocity
-    );
-
-
-    const simulator = Module.createSimulator(destination, rocket, env, autopilot);
-
-    console.log(simulator);
+    simulator = Module.createSimulator(destination, rocket, env, autopilot);
     window.simulator = simulator;
-
     window.simulationInitialized = true;
+
+    window.simulationObjects = {
+      env,
+      destination,
+      rocket,
+      autopilot,
+      simulator
+    };
+
     startVisualizationLoop();
   } catch (error) {
     console.error("Failed to create simulator with optimized params:", error);
+  } finally {
+    if (!simulator) {
+      if (autopilot) autopilot.delete();
+      if (rocket) rocket.delete();
+      if (destination) destination.delete();
+      if (env) env.delete();
+    }
   }
 }
 
 window.resetSimulation = function () {
-
   simulationEnded = false;
   window.simulationInitialized = false;
 
-  // Очистка траектории без переопределения константы
+  targetPosition = null;
+
   trajectoryPoints.length = 0;
   trajectoryGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(0), 3));
 
-
-  // Удаление текста расстояния
   const distanceText = document.getElementById('arrival-distance-text');
   if (distanceText) distanceText.remove();
 
-  // Удаление маркера прибытия
+  if (statusWindow) {
+    statusWindow.style.display = 'none';
+  }
+
   const arrivalMarker = scene.getObjectByName("arrivalMarker");
   if (arrivalMarker) scene.remove(arrivalMarker);
 
-  // Удаление всех визуальных объектов
   const objectsToRemove = [];
   scene.traverse(child => {
     if (child.name === "rocket" || child.name === "destinationMarker" || child === targetMarker) {
       objectsToRemove.push(child);
     }
   });
-
   objectsToRemove.forEach(obj => scene.remove(obj));
 
-  // Удаление симулятора
-  if (window.simulator) {
-    if (typeof window.simulator.delete === 'function') {
-      window.simulator.delete();
-    }
-    window.simulator = null;
+
+  // WASM objects
+  if (window.simulationObjects) {
+    const { env, destination, rocket, autopilot, simulator } = window.simulationObjects;
+
+    if (simulator && typeof simulator.delete === 'function') simulator.delete();
+    if (autopilot && typeof autopilot.delete === 'function') autopilot.delete();
+    if (rocket && typeof rocket.delete === 'function') rocket.delete();
+    if (destination && typeof destination.delete === 'function') destination.delete();
+    if (env && typeof env.delete === 'function') env.delete();
+
+    window.simulationObjects = null;
   }
 
-  // Сброс маркера цели
+  if (targetMarker) {
+    scene.remove(targetMarker);
+    targetMarker = null;
+  }
   targetPosition = null;
-  targetMarker = null;
+
+  const destinationMarker = scene.getObjectByName("destinationMarker");
+  if (destinationMarker) scene.remove(destinationMarker);
 
   console.log("Simulation fully reset");
 };
-
 
 function startVisualizationLoop() {
 
@@ -606,19 +604,36 @@ function startVisualizationLoop() {
     if (!window.simulator || simulationEnded) return;
 
     const visualState = window.simulator.getVisualState();
-    rocket.position.copy(visualState.position);
+    const visualPosition = new THREE.Vector3(
+      visualState.position.x,
+      visualState.position.y - 693,
+      visualState.position.z
+    );
+    rocket.position.copy(visualPosition);
 
-    const thrustDir = visualState.thrustDirection;
-    rocket.lookAt(new THREE.Vector3(
-      rocket.position.x + thrustDir.x,
-      rocket.position.y + thrustDir.y,
-      rocket.position.z + thrustDir.z
-    ));
-
-    trajectoryPoints.push(rocket.position.clone());
+    trajectoryPoints.push(visualPosition.clone());
     trajectoryGeometry.setFromPoints(trajectoryPoints);
 
     const hasArrived = checkAndVisualizeArrival(rocket.position, 1500);
+
+    if (statusWindow && statusWindow.style.display !== 'none') {
+      try {
+        const rocket = window.simulator.rocket();
+        const rocketState = rocket.getState();
+
+        const env = window.simulationObjects.env;
+        const forces = {
+          thrust: rocket.thrust().length(),
+          gravity: env.computeGravityForce(rocket).length(),
+          drag: env.computeDragForce(rocket).length()
+        };
+
+        const distance = window.simulator.getCurrentDistance();
+        updateStatusWindow(rocketState, forces, distance);
+      } catch (e) {
+        console.error("Error updating status window:", e);
+      }
+    }
 
     if (!window.simulator.rocket().isOutOfFuel() && !hasArrived) {
       accumulatedTime += RENDER_STEP;
@@ -641,13 +656,12 @@ function startVisualizationLoop() {
     }
   }
 
-  // Интеграция с основным циклом анимации
+
   function visualizationAnimation(time) {
     if (!simulationEnded) {
       updateVisualization();
     }
 
-    // Продолжаем анимацию только если симуляция активна
     if (window.simulator && !simulationEnded) {
       requestAnimationFrame(visualizationAnimation);
     } else {
@@ -672,36 +686,136 @@ function checkAndVisualizeArrival(rocketPos) {
     marker.name = "arrivalMarker";
     scene.add(marker);
 
-    const distance = window.simulator.getCurrentDistance();
-    showDistanceInfo(rocketPos, distance);
   }
 
   return hasArrived;
 }
-
-function showDistanceInfo(position, distance) {
-  let textEl = document.getElementById('arrival-distance-text');
-  if (!textEl) {
-    textEl = document.createElement('div');
-    textEl.id = 'arrival-distance-text';
-    textEl.style.cssText = `
-      position: absolute; color: white; background: rgba(0,0,0,0.7);
-      padding: 5px 10px; border-radius: 5px; pointer-events: none;
-    `;
-    document.body.appendChild(textEl);
+function createStatusWindow() {
+  if (statusWindow) {
+    document.body.removeChild(statusWindow);
   }
 
-  textEl.textContent = `Arrived! Distance: ${distance.toFixed(2)}m`;
+  statusWindow = document.createElement('div');
+  statusWindow.id = 'rocket-status-window';
+  statusWindow.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(15, 23, 42, 0.85);
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    min-width: 250px;
+    font-family: monospace;
+    z-index: 1000;
+    border: 1px solid #4f6bed;
+    box-shadow: 0 4px 20px rgba(79, 107, 237, 0.3);
+    backdrop-filter: blur(5px);
+  `;
 
-  const updatePosition = () => {
-    const vector = position.clone().project(camera);
-    textEl.style.left = `${(vector.x * 0.5 + 0.5) * window.innerWidth}px`;
-    textEl.style.top = `${(-(vector.y * 0.5) + 0.5) * window.innerHeight}px`;
+  const title = document.createElement('h3');
+  title.textContent = '🚀 Rocket Status';
+  title.style.marginTop = '0';
+  title.style.marginBottom = '12px';
+  title.style.color = '#4f6bed';
+  title.style.borderBottom = '1px solid rgba(74, 85, 104, 0.5)';
+  title.style.paddingBottom = '8px';
+  statusWindow.appendChild(title);
 
-    if (document.body.contains(textEl)) {
-      requestAnimationFrame(updatePosition);
+  const container = document.createElement('div');
+  container.id = 'status-container';
+  statusWindow.appendChild(container);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '✕';
+  closeBtn.style.position = 'absolute';
+  closeBtn.style.top = '10px';
+  closeBtn.style.right = '10px';
+  closeBtn.style.background = 'transparent';
+  closeBtn.style.border = 'none';
+  closeBtn.style.color = '#94a3b8';
+  closeBtn.style.cursor = 'pointer';
+  closeBtn.style.fontSize = '16px';
+  closeBtn.onclick = () => {
+    statusWindow.style.display = 'none';
+    if (window.setStatusWindowVisibility) {
+      window.setStatusWindowVisibility(false);
     }
   };
-  updatePosition();
+  statusWindow.appendChild(closeBtn);
+
+  document.body.appendChild(statusWindow);
+  return statusWindow;
 }
+
+function updateStatusWindow(rocketState, forces, distance) {
+  if (!statusWindow) return;
+
+  const container = document.getElementById('status-container');
+  if (!container) return;
+
+  const formatValue = (value, unit = '') => {
+    if (Math.abs(value) < 0.01) value = 0;
+    return `${value.toFixed(2)} ${unit}`;
+  };
+
+  const position = rocketState.position;
+  const velocity = rocketState.velocity;
+  const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y + velocity.z * velocity.z);
+
+  container.innerHTML = `
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+      <div>
+        <div style="color: #94a3b8; font-size: 12px;">POSITION</div>
+        <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+          <span style="color: #38b2ac;">X:</span> ${formatValue(position.x, 'm')}
+        </div>
+        <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+          <span style="color: #38b2ac;">Y:</span> ${formatValue(position.y - Module.EARTH_RADIUS, 'm')}
+        </div>
+        <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+          <span style="color: #38b2ac;">Z:</span> ${formatValue(position.z, 'm')}
+        </div>
+      </div>
+      
+      <div>
+        <div style="color: #94a3b8; font-size: 12px;">VELOCITY</div>
+        <div style="margin-bottom: 8px;">${formatValue(speed, 'm/s')}</div>
+        
+        <div style="color: #94a3b8; font-size: 12px; margin-top: 10px;">DISTANCE TO TARGET</div>
+        <div>${formatValue(distance, 'm')}</div>
+      </div>
+    </div>
+    
+    <div style="margin-top: 15px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+      <div style="background: rgba(79, 107, 237, 0.2); padding: 8px; border-radius: 6px; text-align: center;">
+        <div style="color: #94a3b8; font-size: 12px;">THRUST</div>
+        <div>${formatValue(forces.thrust, 'N')}</div>
+      </div>
+      
+      <div style="background: rgba(56, 178, 172, 0.2); padding: 8px; border-radius: 6px; text-align: center;">
+        <div style="color: #94a3b8; font-size: 12px;">GRAVITY</div>
+        <div>${formatValue(forces.gravity, 'N')}</div>
+      </div>
+      
+      <div style="background: rgba(237, 137, 54, 0.2); padding: 8px; border-radius: 6px; text-align: center;">
+        <div style="color: #94a3b8; font-size: 12px;">DRAG</div>
+        <div>${formatValue(forces.drag, 'N')}</div>
+      </div>
+    </div>
+    
+    <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+      <div style="background: rgba(159, 122, 234, 0.2); padding: 8px; border-radius: 6px; text-align: center;">
+        <div style="color: #94a3b8; font-size: 12px;">FUEL</div>
+        <div>${formatValue(rocketState.fuelMass, 'kg')}</div>
+      </div>
+      
+      <div style="background: rgba(239, 68, 68, 0.2); padding: 8px; border-radius: 6px; text-align: center;">
+        <div style="color: #94a3b8; font-size: 12px;">MASS</div>
+        <div>${formatValue(rocketState.totalMass, 'kg')}</div>
+      </div>
+    </div>
+  `;
+}
+
 animate();

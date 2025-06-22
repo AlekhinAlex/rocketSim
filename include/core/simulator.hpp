@@ -40,6 +40,8 @@ namespace sim::core
         const Vector3 &destination() const;
         bool isArrived(double tolerance = 1500.0);
 
+        double getCurrentDistance() const;
+
         double time() const;
         const Rocket &rocket() const;
         const Environment &environment() const;
@@ -48,22 +50,9 @@ namespace sim::core
         void reset();
 
     public: // VISUALISATION SECTION
-        Vector3 physicsToVisual(const Vector3 &physicsPos) const
-        {
-            return physicsPos * sim::utils::config::PHYSICS_TO_VISUAL_SCALE;
-        }
+        Vector3 physicsToVisual(const Vector3 &physicsPos) const;
 
-        Vector3 visualToPhysics(const Vector3 &visualPos) const
-        {
-            return visualPos * sim::utils::config::VISUAL_TO_PHYSICS_SCALE;
-        }
-
-        Rocket::RocketState getVisualState() const
-        {
-            auto state = rocket_->getState();
-            state.position = physicsToVisual(state.position);
-            return state;
-        }
+        Rocket::RocketState getVisualState() const;
     };
 
 } // namespace sim::core

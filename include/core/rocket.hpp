@@ -30,7 +30,7 @@ namespace sim::core
 
         bool isOutOfFuel() const;
 
-        void setThrust(const Vector3 &newDirection);
+        void setThrust(const Vector3 &newDirection, double maxAnglePerStep);
         Vector3 thrust() const;
 
         double totalMass() const;

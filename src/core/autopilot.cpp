@@ -15,11 +15,11 @@ namespace sim::core
                                                double turnStartAltitude,
                                                double turnRate,
                                                double maxAngularVelocity)
-        : targetAltitude_(targetAltitude), //! Удвоенная целевая высота
+        : targetAltitude_(targetAltitude),
           destination_(destination),
           environment_(environment),
           turnStartAltitude_(turnStartAltitude),
-          turnRate_(turnRate * 0.5), //! Медленнее поворот
+          turnRate_(turnRate),
           maxAngularVelocity_(maxAngularVelocity)
     {
     }
@@ -34,14 +34,12 @@ namespace sim::core
             return;
         }
 
-        //!==================
         double altitude = rocket.position().length() - sim::utils::config::EARTH_RADIUS;
-        if (altitude < 0)
+        if (altitude < 0 && (phase_ != Phase::TargetApproach))
         {
             altitude = 0;
-            // TODO:Logger::warning("Altitude is negative, clamping to 0. Check rocket position initialization.");
+            // Logger::warning("Altitude is negative, clamping to 0. Check rocket position initialization.");
         }
-        //!==================
 
         //*Logger::info("Autopilot: Current altitude: " + std::to_string(altitude) + " m");
         Vector3 velocity = rocket.velocity();
@@ -59,7 +57,7 @@ namespace sim::core
             }
             else
             {
-                rocket.setThrust(rocket.position().normalized());
+                rocket.setThrust(rocket.position().normalized(), maxAngularVelocity_ * dt);
                 rocket.setThrustLevel(1.0);
                 return;
             }
@@ -77,11 +75,11 @@ namespace sim::core
 
             double angleChange = std::min(currentAngle, maxAngleChange);
 
-            rocket.setThrust(desiredDirection);
+            rocket.setThrust(desiredDirection, maxAngularVelocity_ * dt);
 
             rocket.setThrustLevel(1.0);
 
-            if (currentAngle < 2.0 && altitude > targetAltitude_ * 0.7)
+            if (currentAngle < .5 && altitude > targetAltitude_ * 0.7)
             {
                 phase_ = Phase::TargetApproach;
                 Logger::info("Target acquired, final approach phase\n");
@@ -96,10 +94,10 @@ namespace sim::core
 
             if (distanceToTarget < 1500.0)
             {
-                rocket.setThrustLevel(0.0);
+                // rocket.setThrustLevel(0.0);
                 Logger::info("Target reached, thrust disabled at time: " + std::to_string(time) +
                              ", Position: (" + std::to_string(position.x()) + ", " +
-                             std::to_string(position.y()) + ", " + std::to_string(position.z()) +
+                             std::to_string(position.y() - sim::utils::config::EARTH_RADIUS) + ", " + std::to_string(position.z()) +
                              "), Velocity: " + std::to_string(velocity.length()) + " m/s");
                 return;
             }
@@ -111,7 +109,7 @@ namespace sim::core
             }
             else
             {
-                rocket.setThrustLevel(0.8);
+                // rocket.setThrustLevel(0.8);
             }
 
             double maxAngleChange = maxAngularVelocity_ * dt;
@@ -124,11 +122,11 @@ namespace sim::core
             {
                 double t = angleChange / currentAngle;
                 Vector3 newDirection = rocket.thrust().normalized() + (toTarget - rocket.thrust().normalized()) * t;
-                rocket.setThrust(newDirection.normalized());
+                rocket.setThrust(newDirection.normalized(), maxAngularVelocity_ * dt);
             }
             else
             {
-                rocket.setThrust(toTarget);
+                rocket.setThrust(toTarget, maxAngularVelocity_ * dt);
             }
         }
     }
@@ -153,7 +151,7 @@ namespace sim::core
         Vector3 desiredDirection = Vector3::slerp(positionDir, toTargetHorizontal, turnProgress);
 
         Vector3 gravityDir = environment_->computeGravityForce(rocket).normalized();
-        double gravityCompensation = 0.1 * (1.0 - turnProgress);
+        double gravityCompensation = (1.0 - turnProgress);
         desiredDirection = (desiredDirection - gravityDir * gravityCompensation).normalized();
 
         return desiredDirection;

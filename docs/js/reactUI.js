@@ -5,65 +5,31 @@ window.setMenuPointerEvents = (value) => {
   }
 };
 
-
 function renderReactComponent() {
   const rootElement = document.getElementById("react-root");
 
   const RocketSimulator = () => {
-    const [rocketParams, setRocketParams] = React.useState({
-      dryMass: 5000,
-      initialFuel: 50000,
-      burnRate: 200,
-      specificImpulse: 300,
-      turnStartAltitude: 5000,
-      turnRate: 0.5
-    });
-
-    const [optimizationStatus, setOptimizationStatus] = React.useState(null);
     const [menuVisible, setMenuVisible] = React.useState(true);
-    const [autoSettings, setAutoSettings] = React.useState(false);
+
     const [showAxes, setShowAxes] = React.useState(false);
 
-    const defaultAutoParams = {
-      dryMass: 4200,
-      initialFuel: 60000,
-      burnRate: 180,
-      specificImpulse: 310,
-      turnStartAltitude: 4000,
-      turnRate: 0.6
-    };
-
-    const handleRocketParamChange = (param, value) => {
-      setRocketParams(prev => ({
-        ...prev,
-        [param]: parseFloat(value) || 0
-      }));
-    };
+    const [showStatusWindow, setShowStatusWindow] = React.useState(false);
 
     const toggleMenu = () => setMenuVisible(prev => !prev);
 
-    const toggleAutoSettings = () => {
-      setAutoSettings(prev => {
-        const newState = !prev;
-        if (newState) {
-          setRocketParams(defaultAutoParams);
-        }
-        return newState;
-      });
-    };
-
-
-    const inputStyle = {
-      width: "100%",
-      padding: "10px 12px",
+    const buttonBaseStyle = {
+      padding: "12px 16px",
+      border: "none",
       borderRadius: "8px",
-      border: "1px solid #d0d7de",
-      background: "#fdfdfd",
-      color: "#333",
+      cursor: "pointer",
+      fontWeight: "500",
       fontSize: "14px",
-      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-      outline: "none",
-      transition: "border-color 0.2s ease"
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "8px",
+      transition: "all 0.25s ease",
+      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)"
     };
 
     return React.createElement("div", {}, [
@@ -72,26 +38,31 @@ function renderReactComponent() {
         style: {
           position: "fixed",
           top: "20px",
-          right: menuVisible ? "320px" : "20px",
+          right: menuVisible ? "340px" : "20px",
           zIndex: 1001,
-          transition: "right 0.3s"
+          transition: "right 0.3s ease"
         }
       }, React.createElement("button", {
         onClick: toggleMenu,
         style: {
-          padding: "10px 16px",
+          ...buttonBaseStyle,
           backgroundColor: "#4f6bed",
           color: "#fff",
-          border: "none",
-          borderRadius: "8px",
-          cursor: "pointer",
-          boxShadow: "0 2px 6px rgba(0, 0, 0, 0.15)",
-          fontWeight: "500",
-          fontSize: "14px",
-          transition: "background-color 0.3s",
-          marginRight: "10px"
+          boxShadow: "0 4px 12px rgba(79, 107, 237, 0.3)",
+          padding: "10px 14px",
+          borderRadius: "50%",
+          width: "44px",
+          height: "44px"
+        },
+        onMouseEnter: (e) => {
+          e.target.style.transform = "rotate(90deg)";
+          e.target.style.boxShadow = "0 6px 16px rgba(79, 107, 237, 0.4)";
+        },
+        onMouseLeave: (e) => {
+          e.target.style.transform = "rotate(0deg)";
+          e.target.style.boxShadow = "0 4px 12px rgba(79, 107, 237, 0.3)";
         }
-      }, menuVisible ? "Hide Panel" : "Show Panel")),
+      }, menuVisible ? "✕" : "≡")),
 
       React.createElement("div", {
         key: "right-panel-wrapper",
@@ -104,7 +75,7 @@ function renderReactComponent() {
           overflow: "hidden",
           backgroundColor: "transparent",
           zIndex: 1000,
-          transition: "width 0.3s",
+          transition: "width 0.3s ease",
           pointerEvents: menuVisible ? "auto" : "none"
         }
       }, menuVisible && React.createElement("div", {
@@ -112,230 +83,227 @@ function renderReactComponent() {
         style: {
           width: "100%",
           height: "100%",
-          background: "#ffffff",
-          borderLeft: "1px solid #ddd",
+          background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+          borderLeft: "1px solid rgba(74, 85, 104, 0.3)",
           boxSizing: "border-box",
           padding: "24px",
-          boxShadow: "-4px 0 12px rgba(0, 0, 0, 0.1)",
+          boxShadow: "-4px 0 20px rgba(0, 0, 0, 0.25)",
           pointerEvents: "auto",
           display: "flex",
-          flexDirection: "column"
+          flexDirection: "column",
+          overflowY: "auto"
         }
       }, [
         React.createElement("div", {
-          key: "rocket-title",
-          style: {
-            marginBottom: "20px",
-            fontSize: "17px",
-            fontWeight: "600",
-            color: "#333",
-            borderBottom: "1px solid #e3e3e3",
-            paddingBottom: "8px"
-          }
-        }, "Rocket Parameters"),
-
-        // Auto Settings Checkbox
-        React.createElement("label", {
-          key: "auto-checkbox",
+          key: "header",
           style: {
             display: "flex",
             alignItems: "center",
-            marginBottom: "16px",
-            fontSize: "14px",
-            color: "#333",
-            userSelect: "none",
-            cursor: "pointer"
+            marginBottom: "20px",
+            paddingBottom: "16px",
+            borderBottom: "1px solid rgba(74, 85, 104, 0.5)"
           }
         }, [
-          React.createElement("input", {
-            key: "checkbox",
-            type: "checkbox",
-            checked: autoSettings,
-            onChange: toggleAutoSettings,
+          React.createElement("div", {
+            key: "icon",
             style: {
-              marginRight: "8px",
-              transform: "scale(1.2)"
+              width: "40px",
+              height: "40px",
+              backgroundColor: "rgba(79, 107, 237, 0.2)",
+              borderRadius: "10px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: "12px"
             }
-          }),
-          "Auto Settings"
+          }, "🚀"),
+          React.createElement("div", {
+            key: "title",
+            style: {
+              fontSize: "18px",
+              fontWeight: "700",
+              color: "#e2e8f0",
+              letterSpacing: "0.5px"
+            }
+          }, "Rocket Simulator")
         ]),
 
-        // Inputs
-        ...Object.entries({
-          dryMass: "Dry Mass (kg)",
-          initialFuel: "Initial Fuel (kg)",
-          burnRate: "Burn Rate (kg/s)",
-          specificImpulse: "Specific Impulse (s)",
-          turnStartAltitude: "Turn Start Altitude (m)",
-          turnRate: "Turn Rate"
-        }).map(([param, label]) =>
-          React.createElement("div", { key: param, style: { marginBottom: "16px" } }, [
-            React.createElement("label", {
-              key: `label-${param}`,
+        React.createElement("div", {
+          key: "action-buttons",
+          style: {
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px"
+          }
+        }, [
+          React.createElement("button", {
+            key: "select-destination",
+            onClick: () => {
+              window.selectingTarget = true;
+              console.log("Selecting target mode activated");
+              setMenuVisible(false);
+
+              const helpElement = document.createElement('div');
+              helpElement.style.position = 'fixed';
+              helpElement.style.bottom = '20px';
+              helpElement.style.left = '50%';
+              helpElement.style.transform = 'translateX(-50%)';
+              helpElement.style.backgroundColor = 'rgba(15, 23, 42, 0.9)';
+              helpElement.style.color = 'white';
+              helpElement.style.padding = '12px 24px';
+              helpElement.style.borderRadius = '8px';
+              helpElement.style.zIndex = '1000';
+              helpElement.style.border = '1px solid #4f6bed';
+              helpElement.style.boxShadow = '0 4px 20px rgba(79, 107, 237, 0.3)';
+              helpElement.style.fontSize = '14px';
+              helpElement.style.fontWeight = '500';
+              helpElement.textContent = 'Click anywhere in space to set destination';
+              helpElement.id = 'target-help-message';
+              document.body.appendChild(helpElement);
+
+              setTimeout(() => {
+                if (window.selectingTarget) {
+                  console.log("Target selection timeout");
+                  window.selectingTarget = false;
+                  const helpElement = document.getElementById('target-help-message');
+                  if (helpElement) helpElement.remove();
+                  setMenuVisible(true);
+                }
+              }, 5000);
+            },
+            style: {
+              ...buttonBaseStyle,
+              backgroundColor: "#38b2ac",
+              color: "white",
+              backgroundImage: "linear-gradient(135deg, #38b2ac 0%, #319795 100%)"
+            },
+            onMouseEnter: (e) => {
+              e.target.style.transform = "translateY(-2px)";
+              e.target.style.boxShadow = "0 6px 16px rgba(56, 178, 172, 0.4)";
+            },
+            onMouseLeave: (e) => {
+              e.target.style.transform = "translateY(0)";
+              e.target.style.boxShadow = "0 4px 12px rgba(56, 178, 172, 0.3)";
+            }
+          }, React.createElement("span", { style: { fontSize: "18px" } }, "🎯"), " Select Destination"),
+
+          React.createElement("button", {
+            key: "launch-simulation-button",
+            onClick: async () => {
+              if (!window.simulationInitialized) {
+                console.log("Initializing simulation...");
+                setOptimizationStatus("Initializing...");
+                const success = await window.initSimulation();
+                if (!success) {
+                  alert("Failed to initialize simulation. Please try again.");
+                  setOptimizationStatus(null);
+                  return;
+                }
+              }
+            },
+            style: {
+              ...buttonBaseStyle,
+              background: "linear-gradient(135deg, #4f6bed 0%, #3b82f6 100%)",
+              color: "#fff",
+              padding: "14px",
+              fontSize: "15px",
+              fontWeight: "600"
+            },
+            onMouseEnter: (e) => {
+              e.target.style.transform = "translateY(-2px)";
+              e.target.style.boxShadow = "0 6px 20px rgba(79, 107, 237, 0.4)";
+            },
+            onMouseLeave: (e) => {
+              e.target.style.transform = "translateY(0)";
+              e.target.style.boxShadow = "0 4px 15px rgba(79, 107, 237, 0.3)";
+            }
+          }, React.createElement("span", { style: { fontSize: "18px" } }, "🚀"), " Launch Simulation"),
+
+          React.createElement("div", {
+            key: "utility-buttons",
+            style: {
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "12px",
+              marginTop: "10px"
+            }
+          }, [
+            React.createElement("button", {
+              key: "reset-simulation",
+              onClick: () => {
+                if (window.resetSimulation) {
+                  window.resetSimulation();
+                  setMenuVisible(true);
+                }
+              },
               style: {
-                display: "block",
-                marginBottom: "6px",
-                fontSize: "13px",
-                color: "#444"
+                ...buttonBaseStyle,
+                backgroundColor: "#ed8936",
+                color: "white",
+                backgroundImage: "linear-gradient(135deg, #ed8936 0%, #dd6b20 100%)"
+              },
+              onMouseEnter: (e) => {
+                e.target.style.transform = "translateY(-2px)";
+                e.target.style.boxShadow = "0 6px 16px rgba(237, 137, 54, 0.4)";
+              },
+              onMouseLeave: (e) => {
+                e.target.style.transform = "translateY(0)";
+                e.target.style.boxShadow = "0 4px 12px rgba(237, 137, 54, 0.3)";
               }
-            }, label),
-            React.createElement("input", {
-              key: `input-${param}`,
-              type: "number",
-              step: param === "turnRate" ? "0.1" : "1",
-              value: rocketParams[param],
-              onChange: (e) => handleRocketParamChange(param, e.target.value),
-              disabled: autoSettings,
+            }, React.createElement("span", { style: { fontSize: "18px" } }, "🔄"), " Reset"),
+
+            React.createElement("button", {
+              key: "toggle-axes",
+              onClick: () => {
+                const newState = !showAxes;
+                if (window.toggleAxes) {
+                  window.toggleAxes(newState);
+                }
+                setShowAxes(newState);
+              },
               style: {
-                ...inputStyle,
-                backgroundColor: autoSettings ? "#f0f0f0" : inputStyle.background,
-                width: "90%"
+                ...buttonBaseStyle,
+                backgroundColor: "#9f7aea",
+                color: "white",
+                backgroundImage: "linear-gradient(135deg, #9f7aea 0%, #805ad5 100%)"
+              },
+              onMouseEnter: (e) => {
+                e.target.style.transform = "translateY(-2px)";
+                e.target.style.boxShadow = "0 6px 16px rgba(159, 122, 234, 0.4)";
+              },
+              onMouseLeave: (e) => {
+                e.target.style.transform = "translateY(0)";
+                e.target.style.boxShadow = "0 4px 12px rgba(159, 122, 234, 0.3)";
               }
-            })
-          ])
-        ),
-
-        // Select Destination Button
-        React.createElement("button", {
-          key: "select-destination",
-          onClick: () => {
-            window.selectingTarget = true;
-            console.log("Selecting target mode activated");
-            setMenuVisible(false);
-
-            const helpElement = document.createElement('div');
-            helpElement.style.position = 'fixed';
-            helpElement.style.bottom = '20px';
-            helpElement.style.left = '50%';
-            helpElement.style.transform = 'translateX(-50%)';
-            helpElement.style.backgroundColor = 'rgba(0,0,0,0.7)';
-            helpElement.style.color = 'white';
-            helpElement.style.padding = '10px 20px';
-            helpElement.style.borderRadius = '5px';
-            helpElement.style.zIndex = '1000';
-            helpElement.textContent = 'Click anywhere in space to set destination';
-            helpElement.id = 'target-help-message';
-            document.body.appendChild(helpElement);
-
-            setTimeout(() => {
-              if (window.selectingTarget) {
-                console.log("Target selection timeout");
-                window.selectingTarget = false;
-                const helpElement = document.getElementById('target-help-message');
-                if (helpElement) helpElement.remove();
-                setMenuVisible(true);
+            }, React.createElement("span", { style: { fontSize: "18px" } }, "📐"), showAxes ? " Hide Axes" : " Show Axes"),
+            React.createElement("button", {
+              key: "toggle-status",
+              onClick: () => {
+                const newState = !showStatusWindow;
+                setShowStatusWindow(newState);
+                if (window.setStatusWindowVisibility) {
+                  window.setStatusWindowVisibility(newState);
+                }
+              },
+              style: {
+                ...buttonBaseStyle,
+                backgroundColor: "#4f6bed",
+                color: "white",
+                backgroundImage: "linear-gradient(135deg, #4f6bed 0%, #3b82f6 100%)",
+                gridColumn: "span 2"
+              },
+              onMouseEnter: (e) => {
+                e.target.style.transform = "translateY(-2px)";
+                e.target.style.boxShadow = "0 6px 16px rgba(79, 107, 237, 0.4)";
+              },
+              onMouseLeave: (e) => {
+                e.target.style.transform = "translateY(0)";
+                e.target.style.boxShadow = "0 4px 12px rgba(79, 107, 237, 0.3)";
               }
-            }, 5000);
-          },
-          style: {
-            marginTop: "10px",
-            padding: "10px 16px",
-            backgroundColor: "#4CAF50",
-            color: "#fff",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontWeight: "500",
-            fontSize: "14px",
-            transition: "0.25s"
-          },
-          onMouseEnter: (e) => {
-            e.target.style.transform = "translateY(-2px)";
-            e.target.style.boxShadow = "0 6px 16px rgba(0, 0, 0, 0.25)";
-          },
-          onMouseLeave: (e) => {
-            e.target.style.transform = "translateY(0)";
-            e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2)";
-          }
-        }, "Select Destination"),
+            }, showStatusWindow ? "Hide Status" : "Show Status"),
+          ]),
 
-        // Start Button
-        React.createElement("button", {
-          key: "launch-simulation-button",
-          onClick: async () => {
-            if (!window.simulationInitialized) {
-              console.log("Initializing simulation...");
-              setOptimizationStatus("Initializing...");
-              const success = await window.initSimulation();
-              if (!success) {
-                alert("Failed to initialize simulation. Please try again.");
-                setOptimizationStatus(null);
-                return;
-              }
-            }
-          },
-          style: {
-            marginTop: "20px",
-            padding: "14px 24px",
-            background: "linear-gradient(135deg, #4f6bed, #3b82f6)",
-            color: "#fff",
-            border: "none",
-            borderRadius: "12px",
-            cursor: "pointer",
-            fontWeight: "600",
-            fontSize: "15px",
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-            transition: "all 0.25s"
-          },
-          onMouseEnter: (e) => {
-            e.target.style.transform = "translateY(-2px)";
-            e.target.style.boxShadow = "0 6px 16px rgba(0, 0, 0, 0.25)";
-          },
-          onMouseLeave: (e) => {
-            e.target.style.transform = "translateY(0)";
-            e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2)";
-          }
-        }, "Launch Simulation"),
-
-        React.createElement("button", {
-          key: "reset-simulation",
-          onClick: () => {
-            if (window.resetSimulation) {
-              window.resetSimulation();
-              // Обновить состояние React, если нужно
-              setMenuVisible(true);
-            }
-          },
-          style: {
-            marginTop: "10px",
-            padding: "10px 16px",
-            backgroundColor: "#ff9800",
-            color: "#fff",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer"
-          }
-        }, "Reset Simulation"),
-        React.createElement("button", {
-          key: "toggle-axes",
-          onClick: () => {
-            const newState = !showAxes;
-            if (window.toggleAxes) {
-              window.toggleAxes(newState);
-            }
-            setShowAxes(newState);
-          },
-          style: {
-            marginTop: "10px",
-            padding: "10px 16px",
-            backgroundColor: "#6b4feb",
-            color: "#fff",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontWeight: "500",
-            fontSize: "14px",
-            transition: "0.25s"
-          },
-          onMouseEnter: (e) => {
-            e.target.style.transform = "translateY(-2px)";
-            e.target.style.boxShadow = "0 6px 16px rgba(0, 0, 0, 0.25)";
-          },
-          onMouseLeave: (e) => {
-            e.target.style.transform = "translateY(0)";
-            e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2)";
-          }
-        }, showAxes ? "Hide Axes" : "Show Axes")
+        ])
       ]))
     ]);
   };

@@ -15,7 +15,7 @@ int main()
 {
 
     auto env = std::make_shared<Environment>();
-    Vector3 destination(90000, 130000.0 + config::EARTH_RADIUS, 40000);
+    Vector3 destination(90000, 100000.0 + config::EARTH_RADIUS, 40000);
 
     Optimizer optimizer(env, destination);
     optimizer.optimize(100);

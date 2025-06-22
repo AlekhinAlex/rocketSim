@@ -30,6 +30,11 @@ namespace sim::core
         destination_ = destination;
     }
 
+    double Simulator::getCurrentDistance() const
+    {
+        return (rocket().position() - destination_).length();
+    }
+
     const Vector3 &Simulator::destination() const
     {
         return destination_;
@@ -156,7 +161,7 @@ namespace sim::core
 
     void Simulator::run(double dt)
     {
-        double totalTime = 3600.0;
+        double totalTime = 36000000000.0;
         while (time_ < totalTime && !rocket_->isOutOfFuel() && !isArrived())
         {
             step(dt);
@@ -192,6 +197,26 @@ namespace sim::core
         rocket_->setPosition(Vector3(0, config::EARTH_RADIUS + 1.0, 0));
         rocket_->setVelocity(Vector3(0, 0, 0));
         rocket_->setThrustLevel(0.0);
+    }
+
+    Vector3 Simulator::physicsToVisual(const Vector3 &physicalPos) const
+    {
+        double scale = config::PHYSICS_TO_VISUAL_SCALE * 100;
+        return Vector3(
+            physicalPos.x() * scale,
+            physicalPos.y() * scale,
+            physicalPos.z() * scale);
+    }
+
+    Rocket::RocketState Simulator::getVisualState() const
+    {
+        Rocket::RocketState state = rocket_->getState();
+        double scale = config::PHYSICS_TO_VISUAL_SCALE * 100;
+        state.position = Vector3(
+            state.position.x() * scale,
+            state.position.y() * scale,
+            state.position.z() * scale);
+        return state;
     }
 
 }

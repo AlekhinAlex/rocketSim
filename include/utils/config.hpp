@@ -20,7 +20,12 @@ namespace sim::utils
 
         constexpr double VISUAL_EARTH_RADIUS = 7.0;
         constexpr double PHYSICS_TO_VISUAL_SCALE = VISUAL_EARTH_RADIUS / EARTH_RADIUS;
-        constexpr double VISUAL_TO_PHYSICS_SCALE = EARTH_RADIUS / VISUAL_EARTH_RADIUS;
+        constexpr double VISUAL_TO_PHYSICS_SCALE = EARTH_RADIUS / VISUAL_EARTH_RADIUS / 100.0;
+
+        const double MAX_TURN_RATE = 0.5;
+        const double MIN_TURN_RATE = 0.1;
+        const double MAX_ANGULAR_VELOCITY = 2.0;
+        const double MIN_ANGULAR_VELOCITY = 1.0;
     }
 
 } // namespace sim::utils

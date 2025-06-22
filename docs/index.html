@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rocket Simulator</title>
     <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
 
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -17,7 +21,10 @@
         Experience realistic rocket physics as you launch from Earth to any
         destination in space
       </p>
-      <button id="view-rocket-button">Get Started</button>
+      <div class="button-group">
+        <button id="view-rocket-button">Get Started</button>
+        <button id="about-button">About</button>
+      </div>
     </div>
 
     <div id="react-root"></div>
@@ -44,5 +51,133 @@
         </div>
       </div>
     </div>
+
+    <!-- About Modal -->
+    <div id="about-modal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <div class="modal-header">
+          <i class="fas fa-rocket"></i>
+          <h2>Rocket Simulator</h2>
+        </div>
+
+        <div class="modal-section">
+          <h3>How It Works</h3>
+          <p>
+            This simulator uses realistic physics to model rocket launches from
+            Earth to any destination in space. The simulation considers:
+          </p>
+          <ul>
+            <li><i class="fas fa-wind"></i> Atmospheric drag effects</li>
+            <li>
+              <i class="fas fa-fire"></i> Rocket propulsion and fuel consumption
+            </li>
+            <li><i class="fas fa-bullseye"></i> Gravity turn maneuvers</li>
+          </ul>
+          <p>
+            An advanced optimizer calculates the most efficient trajectory based
+            on your rocket's parameters and destination.
+          </p>
+        </div>
+
+        <div class="modal-section">
+          <h3>Key Rocket Parameters</h3>
+          <div class="parameter-grid">
+            <div class="parameter">
+              <i class="fas fa-weight-hanging"></i>
+              <h4>Dry Mass</h4>
+              <p>Mass of the rocket without fuel (kg)</p>
+            </div>
+            <div class="parameter">
+              <i class="fas fa-gas-pump"></i>
+              <h4>Initial Fuel</h4>
+              <p>Starting fuel mass (kg)</p>
+            </div>
+            <div class="parameter">
+              <i class="fas fa-fire"></i>
+              <h4>Burn Rate</h4>
+              <p>Fuel consumption rate (kg/s)</p>
+            </div>
+            <div class="parameter">
+              <i class="fas fa-gauge-high"></i>
+              <h4>Specific Impulse</h4>
+              <p>Engine efficiency (seconds)</p>
+            </div>
+            <div class="parameter">
+              <i class="fas fa-mountain"></i>
+              <h4>Turn Start Altitude</h4>
+              <p>When to begin gravity turn (meters)</p>
+            </div>
+            <div class="parameter">
+              <i class="fas fa-rotate"></i>
+              <h4>Turn Rate</h4>
+              <p>Angular velocity during turn (deg/s)</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <h3>Physics Calculations</h3>
+          <div class="physics-equation">
+            <h4>Thrust Force</h4>
+            <p>F<sub>thrust</sub> = ṁ * I<sub>sp</sub> * g<sub>0</sub></p>
+            <p>
+              Where ṁ is fuel flow rate, I<sub>sp</sub> is specific impulse, and
+              g<sub>0</sub> is gravity at sea level
+            </p>
+          </div>
+          <div class="physics-equation">
+            <h4>Drag Force</h4>
+            <p>
+              F<sub>drag</sub> = 0.5 * ρ * v<sup>2</sup> * C<sub>d</sub> * A
+            </p>
+            <p>
+              Where ρ is air density, v is velocity, C<sub>d</sub> is drag
+              coefficient, and A is cross-sectional area
+            </p>
+          </div>
+          <div class="physics-equation">
+            <h4>Gravity Force</h4>
+            <p>
+              F<sub>gravity</sub> = G * M<sub>earth</sub> * m / r<sup>2</sup>
+            </p>
+            <p>
+              Where G is gravitational constant, M<sub>earth</sub> is Earth's
+              mass, m is rocket mass, and r is distance from Earth's center
+            </p>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <h3>Getting Started</h3>
+          <ol>
+            <li>Click "Get Started" to enter simulation view</li>
+            <li>Select a destination in space</li>
+            <li>Launch the simulation and watch your rocket fly!</li>
+            <li>Use "Reset Simulation" to try different configurations</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const modal = document.getElementById("about-modal");
+      const btn = document.getElementById("about-button");
+      const span = document.getElementsByClassName("close")[0];
+
+      btn.onclick = function () {
+        modal.style.display = "block";
+      };
+
+      span.onclick = function () {
+        modal.style.display = "none";
+      };
+
+      window.onclick = function (event) {
+        if (event.target === modal) {
+          modal.style.display = "none";
+        }
+      };
+    </script>
   </body>
 </html>

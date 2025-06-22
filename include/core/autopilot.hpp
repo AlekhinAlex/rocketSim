@@ -58,6 +58,9 @@ namespace sim::core
         double targetAltitude() const;
         double maxAngularVelocity() const;
 
+        void setTurnRate(double rate) { turnRate_ = rate * 0.5; }
+        void setMaxAngularVelocity(double vel) { maxAngularVelocity_ = vel * 0.8; }
+
         bool isFacingTarget(const Rocket &rocket) const;
         Phase currentPhase() const { return phase_; }
     };

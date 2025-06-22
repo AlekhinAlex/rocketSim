@@ -94,6 +94,7 @@ EMSCRIPTEN_BINDINGS(simulator)
         .function("dryMass", &sim::core::Rocket::dryMass)
         .function("getCrossSectionArea", &sim::core::Rocket::getCrossSectionArea)
         .function("getDragCoefficient", &sim::core::Rocket::getDragCoefficient)
+        .function("getState", &sim::core::Rocket::getState)
         .function("isOutOfFuel", &sim::core::Rocket::isOutOfFuel);
 
     value_object<sim::core::Rocket::RocketState>("RocketState")
@@ -133,10 +134,11 @@ EMSCRIPTEN_BINDINGS(simulator)
         .function("run", &sim::core::Simulator::run)
         .function("rocket", &sim::core::Simulator::rocket)
         .function("physicsToVisual", &sim::core::Simulator::physicsToVisual)
-        .function("visualToPhysics", &sim::core::Simulator::visualToPhysics)
         .function("getVisualState", &sim::core::Simulator::getVisualState)
+        .function("environment", &sim::core::Simulator::environment)
         .function("destination", &sim::core::Simulator::destination)
         .function("isArrived", &sim::core::Simulator::isArrived)
+        .function("getCurrentDistance", &sim::core::Simulator::getCurrentDistance)
         .function("isOutOfFuel", &sim::core::Rocket::isOutOfFuel)
         .function("reset", &sim::core::Simulator::reset);
 
