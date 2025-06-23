@@ -44,13 +44,13 @@ namespace sim::core
         if (altitude < 0)
         {
             position_ = position_.normalized() * config::EARTH_RADIUS;
-            Vector3 radial_dir = position_.normalized();
-            double radial_speed = velocity_.dot(radial_dir);
+            Vector3 radialDir = position_.normalized();
+            double radialSpeed = velocity_.dot(radialDir);
 
-            if (radial_speed < 0)
+            if (radialSpeed < 0)
             {
 
-                velocity_ = velocity_ - radial_dir * radial_speed;
+                velocity_ = velocity_ - radialDir * radialSpeed;
             }
         }
         // Logger::debug("Position: (" + std::to_string(position_.x()) + ", " +

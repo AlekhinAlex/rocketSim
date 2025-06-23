@@ -48,4 +48,16 @@ else()
     add_executable(${PROJECT_NAME} main.cpp ${SOURCES} ${HEADERS})
 endif()
 
+option(BUILD_TESTS "Build the tests" OFF)
+if(BUILD_TESTS)
+    enable_testing()
+    find_package(GTest REQUIRED)
+    include(GoogleTest)
+
+    set(TEST_SOURCES ${SOURCES})
+    list(FILTER TEST_SOURCES EXCLUDE REGEX ".*/main.cpp$")
+    
+    add_executable(run_tests tests/main.cpp ${TEST_SOURCES})
+    target_link_libraries(run_tests GTest::GTest GTest::Main)
+    gtest_discover_tests(run_tests)
 endif()

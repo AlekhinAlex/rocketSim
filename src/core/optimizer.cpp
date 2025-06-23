@@ -45,12 +45,12 @@ namespace sim::core
         std::mt19937 gen(rd());
         std::uniform_real_distribution<> dis(0.8, 1.2);
 
-        dryMass = 20000.0 * dis(gen);                //  сухая массу
-        initialFuel = 200000.0 * dis(gen);           //   топлива
-        burnRate = 500.0 * dis(gen);                 // большая скорость сгорания
-        specificImpulse = 400.0 * dis(gen);          //  удельный импульс
-        turnStartAltitude = 10000 + 5000 * dis(gen); //  начало поворота
-        turnRate = 0.15 + 0.5 * dis(gen);            //  поворот
+        dryMass = 20000.0 * dis(gen);
+        initialFuel = 200000.0 * dis(gen);
+        burnRate = 500.0 * dis(gen);
+        specificImpulse = 400.0 * dis(gen);
+        turnStartAltitude = 10000 + 5000 * dis(gen);
+        turnRate = 0.15 + 0.5 * dis(gen);
     }
 
     double Optimizer::evaluateParameters(

@@ -35,7 +35,7 @@ const OptimizerWorker = new Worker(new URL('./optimizer.worker.js', import.meta.
 });
 
 const PHYSICS_TIME_STEP = 0.01;
-const RENDER_STEP = .5;
+const RENDER_STEP = .2;
 let accumulatedTime = 0;
 
 const container = document.getElementById("scene-container");
@@ -204,8 +204,8 @@ rocket.add(rocketGlow);
 
 let flamePulse = 0;
 
-camera.position.set(-15, 8, 15);
-camera.lookAt(earth.position);
+camera.position.set(-15, 10, 15);
+camera.lookAt(0, earthRadius, 0);
 
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.target.copy(earth.position.clone().add(new THREE.Vector3(0, 7, 0)));
@@ -218,11 +218,12 @@ controls.enablePan = false;
 controls.enabled = false;
 
 let animationStartTime = null;
-const animationDuration = 3000;
+const animationDuration = 2000;
 const startCameraPosition = camera.position.clone();
 const endCameraPosition = new THREE.Vector3(
   9, 15, 4
 );
+
 
 document.getElementById("view-rocket-button").addEventListener("click", () => {
   document.body.classList.add("transitioning");
@@ -258,7 +259,7 @@ function animate(time = 0) {
       endCameraPosition,
       easedProgress
     );
-    camera.lookAt(earth.position);
+    camera.lookAt(0, earthRadius, 0);
 
     if (progress > 0.5) {
       rocketGlow.intensity = 1.2 + (progress - 0.5) * 3;
@@ -287,56 +288,6 @@ renderer.domElement.addEventListener("click", (event) => {
     return;
   }
 
-  if (event.target !== renderer.domElement) {
-    function checkAndVisualizeArrival(rocketPos) {
-      if (!window.simulator || !targetPosition) return false;
-
-      const hasArrived = window.simulator.isArrived(1500);
-
-      if (hasArrived && !scene.getObjectByName("arrivalMarker")) {
-        const marker = new THREE.Mesh(
-          new THREE.SphereGeometry(0.05, 16, 16),
-          new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.7 })
-        );
-        marker.position.copy(rocketPos);
-        marker.name = "arrivalMarker";
-        scene.add(marker);
-
-        const distance = window.simulator.getCurrentDistance();
-        showDistanceInfo(rocketPos, distance);
-      }
-
-      return hasArrived;
-    }
-
-    function showDistanceInfo(position, distance) {
-      let textEl = document.getElementById('arrival-distance-text');
-      if (!textEl) {
-        textEl = document.createElement('div');
-        textEl.id = 'arrival-distance-text';
-        textEl.style.cssText = `
-      position: absolute; color: white; background: rgba(0,0,0,0.7);
-      padding: 5px 10px; border-radius: 5px; pointer-events: none;
-    `;
-        document.body.appendChild(textEl);
-      }
-
-      textEl.textContent = `Arrived! Distance: ${distance.toFixed(2)}m`;
-
-      const updatePosition = () => {
-        const vector = position.clone().project(camera);
-        textEl.style.left = `${(vector.x * 0.5 + 0.5) * window.innerWidth}px`;
-        textEl.style.top = `${(-(vector.y * 0.5) + 0.5) * window.innerHeight}px`;
-
-        if (document.body.contains(textEl)) {
-          requestAnimationFrame(updatePosition);
-        }
-      };
-      updatePosition();
-    }
-    console.log("Click was not on canvas");
-    return;
-  }
 
   const rect = renderer.domElement.getBoundingClientRect();
   mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -351,6 +302,41 @@ renderer.domElement.addEventListener("click", (event) => {
   raycaster.ray.at(distance, targetPoint);
 
   targetPosition = targetPoint;
+
+  const minHeight = earthRadius + 1.5;
+  if (targetPosition.y < minHeight) {
+    const existingError = document.getElementById('target-error-message');
+    if (existingError) existingError.remove();
+
+    const errorElement = document.createElement('div');
+    errorElement.id = 'target-error-message';
+    errorElement.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(220, 38, 38, 0.9);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      z-index: 2000;
+      border: 1px solid #f87171;
+      box-shadow: 0 4px 20px rgba(220, 38, 38, 0.3);
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+    `;
+    errorElement.textContent = 'Error: Target must be above the initial rocket position. Please choose a higher point.';
+    document.body.appendChild(errorElement);
+
+    setTimeout(() => {
+      if (errorElement.parentNode) {
+        errorElement.parentNode.removeChild(errorElement);
+      }
+    }, 5000);
+
+    return;
+  }
 
   console.log("Target selected in space at:", targetPosition);
   const phPos = new THREE.Vector3(

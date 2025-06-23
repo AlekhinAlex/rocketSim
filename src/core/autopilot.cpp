@@ -89,27 +89,15 @@ namespace sim::core
 
         if (phase_ == Phase::TargetApproach)
         {
-            double stopDistance = calculateStopDistance(rocket, totalForce).length();
             double distanceToTarget = (destination_ - rocket.position()).length();
 
             if (distanceToTarget < 1500.0)
             {
-                // rocket.setThrustLevel(0.0);
                 Logger::info("Target reached, thrust disabled at time: " + std::to_string(time) +
                              ", Position: (" + std::to_string(position.x()) + ", " +
                              std::to_string(position.y() - sim::utils::config::EARTH_RADIUS) + ", " + std::to_string(position.z()) +
                              "), Velocity: " + std::to_string(velocity.length()) + " m/s");
                 return;
-            }
-
-            if (distanceToTarget < stopDistance)
-            {
-                double decelerationFactor = std::clamp(distanceToTarget / stopDistance, 0.05, 0.8);
-                rocket.setThrustLevel(decelerationFactor);
-            }
-            else
-            {
-                // rocket.setThrustLevel(0.8);
             }
 
             double maxAngleChange = maxAngularVelocity_ * dt;
@@ -155,22 +143,6 @@ namespace sim::core
         desiredDirection = (desiredDirection - gravityDir * gravityCompensation).normalized();
 
         return desiredDirection;
-    }
-
-    Vector3 GravityTurnAutopilot::calculateStopDistance(const Rocket &rocket, const Vector3 &totalForce) const
-    {
-        double currentSpeed = rocket.velocity().length();
-        double maxThrust = rocket.specificImpulse() * config::g * rocket.burnRate();
-        double maxDeceleration = (maxThrust + environment_->computeDragForce(rocket).length()) / rocket.totalMass();
-
-        Vector3 gravityDir = environment_->computeGravityForce(rocket).normalized();
-        maxDeceleration -= (rocket.thrust().dot(gravityDir) * environment_->getGravity(rocket.position().length() - sim::utils::config::EARTH_RADIUS));
-
-        if (maxDeceleration <= 0)
-        {
-            return rocket.velocity() * 1e6;
-        }
-        return rocket.velocity() * (currentSpeed / maxDeceleration);
     }
 
     bool GravityTurnAutopilot::isFacingTarget(const Rocket &rocket) const
