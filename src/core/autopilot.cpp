@@ -128,13 +128,14 @@ namespace sim::core
         Vector3 horizontalPlaneNormal = positionDir;
         Vector3 toTargetHorizontal = toTarget - horizontalPlaneNormal * toTarget.dot(horizontalPlaneNormal);
         if (toTargetHorizontal.length() < 1e-5)
+        {
             toTargetHorizontal = velocityDir;
+        }
+
         toTargetHorizontal = toTargetHorizontal.normalized();
 
         double altitude = rocket.position().length() - config::EARTH_RADIUS;
-        double turnProgress = std::clamp((altitude - turnStartAltitude_) /
-                                             (targetAltitude_ - turnStartAltitude_),
-                                         0.0, 1.0);
+        double turnProgress = std::clamp((altitude - turnStartAltitude_) / (targetAltitude_ - turnStartAltitude_), 0.0, 1.0);
 
         Vector3 desiredDirection = Vector3::slerp(positionDir, toTargetHorizontal, turnProgress);
 

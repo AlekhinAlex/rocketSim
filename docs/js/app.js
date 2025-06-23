@@ -529,10 +529,6 @@ window.resetSimulation = function () {
   const distanceText = document.getElementById('arrival-distance-text');
   if (distanceText) distanceText.remove();
 
-  if (statusWindow) {
-    statusWindow.style.display = 'none';
-  }
-
   const arrivalMarker = scene.getObjectByName("arrivalMarker");
   if (arrivalMarker) scene.remove(arrivalMarker);
 
