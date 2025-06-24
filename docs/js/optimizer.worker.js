@@ -16,6 +16,7 @@ async function initialize() {
 }
 
 
+
 function runOptimization(destination, iterations = 50) {
     try {
         const env = Module.createEnvironment();

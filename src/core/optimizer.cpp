@@ -12,10 +12,6 @@ namespace sim::core
 
     void Optimizer::optimize(int iterations)
     {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_real_distribution<> dis(0.0, 1.0);
-
         for (int i = 0; i < iterations; ++i)
         {
             double dryMass, initialFuel, burnRate,
@@ -29,9 +25,19 @@ namespace sim::core
             if (score < bestScore_)
             {
                 bestScore_ = score;
-                bestRocket_ = std::make_shared<Rocket>(dryMass, initialFuel, burnRate, specificImpulse, 10.0, 0.2);
+                bestRocket_ = std::make_shared<Rocket>(dryMass,
+                                                       initialFuel,
+                                                       burnRate,
+                                                       specificImpulse,
+                                                       10.0,
+                                                       0.2);
+
                 bestAutopilot_ = std::make_shared<GravityTurnAutopilot>(
-                    (destination_.y() - sim::utils::config::EARTH_RADIUS) * .6, destination_, env_, turnStartAltitude, turnRate, 8);
+                    (destination_.y() - sim::utils::config::EARTH_RADIUS) * .6,
+                    destination_,
+                    env_,
+                    turnStartAltitude,
+                    turnRate, 8);
             }
         }
     }
@@ -48,7 +54,7 @@ namespace sim::core
         dryMass = 20000.0 * dis(gen);
         initialFuel = 200000.0 * dis(gen);
         burnRate = 500.0 * dis(gen);
-        specificImpulse = 400.0 * dis(gen);
+        specificImpulse = 600.0 * dis(gen);
         turnStartAltitude = 10000 + 5000 * dis(gen);
         turnRate = 0.15 + 0.5 * dis(gen);
     }
@@ -58,10 +64,19 @@ namespace sim::core
         double specificImpulse, double turnStartAltitude, double turnRate)
     {
 
-        auto rocket = std::make_shared<Rocket>(dryMass, initialFuel,
-                                               burnRate, specificImpulse, 10.0, 0.2);
-        auto autopilot = std::make_shared<GravityTurnAutopilot>((destination_.y() - sim::utils::config::EARTH_RADIUS) * .6, destination_,
-                                                                env_, turnStartAltitude, turnRate, 8);
+        auto rocket = std::make_shared<Rocket>(dryMass,
+                                               initialFuel,
+                                               burnRate,
+                                               specificImpulse,
+                                               10.0,
+                                               0.2);
+
+        auto autopilot = std::make_shared<GravityTurnAutopilot>((destination_.y() - sim::utils::config::EARTH_RADIUS) * .6,
+                                                                destination_,
+                                                                env_,
+                                                                turnStartAltitude,
+                                                                turnRate,
+                                                                8);
 
         Simulator sim(rocket, env_, destination_, autopilot);
         sim.run(sim::utils::config::TIME_STEP);

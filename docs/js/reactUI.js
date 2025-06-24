@@ -9,82 +9,16 @@ function renderReactComponent() {
   const rootElement = document.getElementById("react-root");
 
   const RocketSimulator = () => {
-    const [rocketParams, setRocketParams] = React.useState({
-      dryMass: 5000,
-      initialFuel: 50000,
-      burnRate: 200,
-      specificImpulse: 300,
-      turnStartAltitude: 5000,
-      turnRate: 0.5
-    });
+
 
     const [optimizationStatus, setOptimizationStatus] = React.useState(null);
     const [menuVisible, setMenuVisible] = React.useState(true);
     const [autoSettings, setAutoSettings] = React.useState(false);
     const [showAxes, setShowAxes] = React.useState(false);
-    const [rocketStatus, setRocketStatus] = React.useState({
-      fuel: 0,
-      position: { x: 0, y: 0, z: 0 },
-      velocity: 0,
-      distance: 0,
-      thrust: 0
-    });
+
     const [showStatusWindow, setShowStatusWindow] = React.useState(false);
 
-    const defaultAutoParams = {
-      dryMass: 4200,
-      initialFuel: 60000,
-      burnRate: 180,
-      specificImpulse: 310,
-      turnStartAltitude: 4000,
-      turnRate: 0.6
-    };
-
-    const handleRocketParamChange = (param, value) => {
-      setRocketParams(prev => ({
-        ...prev,
-        [param]: parseFloat(value) || 0
-      }));
-    };
-
     const toggleMenu = () => setMenuVisible(prev => !prev);
-
-    const toggleAutoSettings = () => {
-      setAutoSettings(prev => {
-        const newState = !prev;
-        if (newState) {
-          setRocketParams(defaultAutoParams);
-        }
-        return newState;
-      });
-    };
-
-    const statusWindowStyle = {
-      position: "fixed",
-      bottom: "20px",
-      left: "20px",
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
-      color: "white",
-      padding: "15px",
-      borderRadius: "8px",
-      minWidth: "250px",
-      fontFamily: "monospace",
-      zIndex: "1000",
-      display: "none"
-    };
-
-    const inputStyle = {
-      width: "100%",
-      padding: "10px 12px",
-      borderRadius: "8px",
-      border: "1px solid #2d3748",
-      background: "#1a202c",
-      color: "#e2e8f0",
-      fontSize: "14px",
-      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.15)",
-      outline: "none",
-      transition: "all 0.25s ease"
-    };
 
     const buttonBaseStyle = {
       padding: "12px 16px",
@@ -259,6 +193,11 @@ function renderReactComponent() {
           React.createElement("button", {
             key: "launch-simulation-button",
             onClick: async () => {
+              if (!window.targetPosition) {
+                alert("Please select a target destination first.");
+                return;
+              }
+
               if (!window.simulationInitialized) {
                 console.log("Initializing simulation...");
                 setOptimizationStatus("Initializing...");

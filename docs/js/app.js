@@ -302,7 +302,7 @@ renderer.domElement.addEventListener("click", (event) => {
   raycaster.ray.at(distance, targetPoint);
 
   targetPosition = targetPoint;
-
+  window.targetPosition = targetPosition;
   const minHeight = earthRadius + 1.5;
   if (targetPosition.y < minHeight) {
     const existingError = document.getElementById('target-error-message');
@@ -400,6 +400,11 @@ initializeWASM();
 async function initSimulation() {
   if (!window.ModuleReady) {
     console.error("WASM module not ready yet");
+    return false;
+  }
+
+  if (!targetPosition) {
+    alert("Please select a target destination first.");
     return false;
   }
 
@@ -553,6 +558,8 @@ window.resetSimulation = function () {
 
     window.simulationObjects = null;
   }
+
+  window.targetPosition = null;
 
   if (targetMarker) {
     scene.remove(targetMarker);
